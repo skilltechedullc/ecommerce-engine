@@ -3,6 +3,7 @@
     radial-gradient(circle at top left, rgba(16, 94, 67, 0.08), transparent 32%),
     linear-gradient(180deg, #f8fcf8 0%, #f3f8f5 100%);
   color: #163527;
+  overflow-x: clip;
 }
 
 .section,
@@ -16,6 +17,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  overflow: clip;
 }
 
 .heroGlow {
@@ -532,6 +534,13 @@
   .hero {
     min-height: auto;
     padding-top: 30px;
+  }
+
+  .heroGlow {
+    right: -90px;
+    bottom: -90px;
+    width: 260px;
+    height: 260px;
   }
 
   .heroImageCard {

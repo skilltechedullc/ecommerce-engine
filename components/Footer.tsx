@@ -34,6 +34,7 @@ export default function Footer() {
   return (
     <footer
       id="contact"
+      className="footerRoot"
       style={{
         scrollMarginTop: '104px',
         backgroundColor: '#0F3D2E',
@@ -44,6 +45,7 @@ export default function Footer() {
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Three-column grid */}
         <div
+          className="footerGrid"
           style={{
             display: 'grid',
             gridTemplateColumns: '2fr 1fr 1.4fr',
@@ -238,6 +240,7 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div
+          className="footerBottom"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -296,6 +299,23 @@ export default function Footer() {
           .businessGatewayCta {
             opacity: 0.52;
             transform: translateY(2px);
+          }
+        }
+
+        @media (max-width: 767px) {
+          .footerRoot {
+            padding: 48px 20px 32px !important;
+          }
+
+          .footerGrid {
+            grid-template-columns: 1fr !important;
+            gap: 40px !important;
+          }
+
+          .footerBottom {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
           }
         }
       `}</style>

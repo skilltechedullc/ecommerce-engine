@@ -1,33 +1,20 @@
 import { supabase } from '@/lib/supabase'
 import ProductCard from '@/components/ProductCard'
 import Link from 'next/link'
-import Image from 'next/image'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
-import { storeConfig } from '@/lib/config'
 import ProductsCopyVariantTracker from './ProductsCopyVariantTracker'
 import styles from './products.module.css'
 
 type CopyVariantKey = 'trust' | 'urgency'
 
-const COPY_VARIANTS: Record<CopyVariantKey, {
-  title: string
-  description: string
-  primaryCta: string
-  secondaryCta: string
-}> = {
+const COPY_VARIANTS: Record<CopyVariantKey, { title: string; description: string }> = {
   trust: {
     title: 'Browse certified natural foods with premium quality standards.',
-    description:
-      'Discover coconut oil, sesame oil, honey, peanut oil, arrow root, and other natural essentials produced with traditional care and modern quality assurance.',
-    primaryCta: 'Browse Products',
-    secondaryCta: 'Shop Best Sellers',
+    description: 'Certified oils and natural staples crafted for clean everyday cooking.',
   },
   urgency: {
     title: 'Clean essentials for your next kitchen refill.',
-    description:
-      'Pick from fast-moving certified oils and natural staples chosen for daily home use. Order today for fresh stock and trusted quality.',
-    primaryCta: 'Shop Now',
-    secondaryCta: 'See Popular Picks',
+    description: 'Natural, chemical-free essentials for your next kitchen refill.',
   },
 }
 
@@ -101,48 +88,26 @@ export default async function ProductsPage({
             <span className={styles.kicker}>Millco Collection</span>
             <h1>{heroCopy.title}</h1>
             <p>{heroCopy.description}</p>
-            <div className={styles.heroActions}>
-              <Link href="#product-grid" className={`${styles.heroButton} ${styles.heroButtonPrimary}`}>
-                {heroCopy.primaryCta}
-              </Link>
-              <Link href={popularPicksHref} className={`${styles.heroButton} ${styles.heroButtonGhost}`}>
-                {heroCopy.secondaryCta}
-              </Link>
-            </div>
             <div className={styles.stats}>
               <div className={styles.stat}>
-                <strong>{totalProducts}</strong>
-                <span>{activeCategory ? `${activeCategory} products` : 'Available products'}</span>
+                <strong>FSSAI</strong>
+                <span>Certified quality</span>
               </div>
               <div className={styles.stat}>
-                <strong>Certified</strong>
-                <span>FSSAI, HACCP, GMP aligned</span>
+                <strong>HACCP</strong>
+                <span>Safety process</span>
+              </div>
+              <div className={styles.stat}>
+                <strong>GMP</strong>
+                <span>Clean production</span>
               </div>
               <div className={styles.stat}>
                 <strong>Clean</strong>
-                <span>Chemical-free and traditional</span>
+                <span>Chemical-free</span>
               </div>
             </div>
+            <Link href={popularPicksHref} className={styles.heroPopularLink}>Popular Picks</Link>
           </div>
-
-          <aside className={styles.sideCard}>
-            <div className={styles.brandBadge}>
-              <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={170} height={56} unoptimized />
-              <div className={styles.brandBadgeText}>
-                <span>Trusted Brand</span>
-                <strong>{storeConfig.brandName}</strong>
-              </div>
-            </div>
-            <h2>Premium everyday essentials</h2>
-            <p>
-              Filter by category and explore products curated for purity, reliability, and everyday home use.
-            </p>
-            <div className={styles.pillRow}>
-              <span className={styles.pill}>Natural</span>
-              <span className={styles.pill}>Traditional</span>
-              <span className={styles.pill}>Certified</span>
-            </div>
-          </aside>
         </section>
 
         <div className={styles.filters}>
@@ -187,22 +152,11 @@ export default async function ProductsPage({
           </div>
         </div>
 
-        <div className={styles.activeStateRow}>
-          <p>
-            Showing <strong>{totalProducts}</strong> product{totalProducts === 1 ? '' : 's'}
-            {activeCategory ? <span> in <strong>{activeCategory}</strong></span> : null}
-            {activeSort !== 'featured' ? <span> sorted by <strong>{activeSort.replace('-', ' ')}</strong></span> : null}
-          </p>
-          {activeFilterCount > 0 ? (
+        {activeFilterCount > 0 ? (
+          <div className={styles.activeStateRow}>
             <Link href="/products" className={styles.resetLink}>Clear all filters</Link>
-          ) : null}
-        </div>
-
-        <div className={styles.trustStrip} aria-label="Trust highlights">
-          <span>Certified</span>
-          <span>No Chemicals</span>
-          <span>Trusted Quality</span>
-        </div>
+          </div>
+        ) : null}
 
         {popularProducts.length > 0 ? (
           <section id="popular-picks" className={styles.featuredSection}>
@@ -243,6 +197,12 @@ export default async function ProductsPage({
               </Link>
             )}
           </div>
+        )}
+
+        {products && products.length > 0 && (
+          <p className={styles.resultHint}>
+            Showing {totalProducts} product{totalProducts === 1 ? '' : 's'}
+          </p>
         )}
       </div>
     </div>

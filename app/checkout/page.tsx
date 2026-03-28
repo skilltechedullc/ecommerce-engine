@@ -235,35 +235,6 @@ export default function CheckoutPage() {
   return (
     <div className={styles.page}>
       <div className={styles.wrap}>
-        <section className={styles.hero}>
-          <div className={styles.heroCard}>
-            <span className={styles.kicker}>Secure Checkout</span>
-            <h1>Finish your order with a clean, trusted payment flow.</h1>
-            <p>
-              Share your delivery details, review the basket, and complete payment securely. The checkout experience is designed to stay as calm and premium as the rest of the storefront.
-            </p>
-            <div className={styles.checkpoints}>
-              <span className={styles.checkpoint}>Verified sourcing</span>
-              <span className={styles.checkpoint}>Protected payment</span>
-              <span className={styles.checkpoint}>Reliable dispatch</span>
-            </div>
-          </div>
-
-          <aside className={styles.brandCard}>
-            <div className={styles.logoRow}>
-              <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
-              <div className={styles.logoMeta}>
-                <span>{storeConfig.brandName}</span>
-                <strong>Natural foods with a more deliberate standard.</strong>
-              </div>
-            </div>
-            <h2>Why this feels dependable</h2>
-            <p>
-              From product sourcing to payment confirmation, every step is structured to remove friction without reducing trust. Your order details are captured only for fulfilment and communication.
-            </p>
-          </aside>
-        </section>
-
         <section className={styles.body}>
           <div className={styles.formCard}>
             <div className={styles.formIntro}>
@@ -414,6 +385,35 @@ export default function CheckoutPage() {
               )}
             </aside>
           )}
+        </section>
+
+        <section className={styles.hero}>
+          <div className={styles.heroCard}>
+            <span className={styles.kicker}>Secure Checkout</span>
+            <h1>Finish your order with a clean, trusted payment flow.</h1>
+            <p>
+              Share your delivery details, review the basket, and complete payment securely.
+            </p>
+            <div className={styles.checkpoints}>
+              <span className={styles.checkpoint}>Verified sourcing</span>
+              <span className={styles.checkpoint}>Protected payment</span>
+              <span className={styles.checkpoint}>Reliable dispatch</span>
+            </div>
+          </div>
+
+          <aside className={styles.brandCard}>
+            <div className={styles.logoRow}>
+              <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
+              <div className={styles.logoMeta}>
+                <span>{storeConfig.brandName}</span>
+                <strong>Natural foods with a more deliberate standard.</strong>
+              </div>
+            </div>
+            <h2>Why this feels dependable</h2>
+            <p>
+              Your details are captured only for fulfilment, communication, and secure payment confirmation.
+            </p>
+          </aside>
         </section>
 
         {cart.length > 0 && (

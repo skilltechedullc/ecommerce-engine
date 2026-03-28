@@ -21,7 +21,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   gap: 24px;
-  margin-bottom: 30px;
+  margin-top: 24px;
 }
 
 .heroCard,
@@ -132,6 +132,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 0.9fr);
   gap: 24px;
+  align-items: start;
 }
 
 .formCard {
@@ -198,11 +199,15 @@
 .summaryCard {
   position: sticky;
   top: 100px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 720px) {
   .summaryCard {
     position: static;
+    max-height: none;
   }
 }
 
@@ -231,7 +236,9 @@
   margin-top: 18px;
   display: grid;
   gap: 12px;
-  max-height: 420px;
+  max-height: none;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -490,13 +497,12 @@
 }
 
 @media (max-width: 980px) {
-  .hero,
   .body {
     grid-template-columns: 1fr;
   }
 
-  .summaryCard {
-    position: static;
+  .hero {
+    margin-top: 18px;
   }
 
   .page {
@@ -532,8 +538,8 @@
   }
 
   .summaryList {
-    max-height: none;
     overflow: visible;
     padding-right: 0;
+    min-height: initial;
   }
 }

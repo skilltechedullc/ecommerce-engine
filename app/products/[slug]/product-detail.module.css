@@ -1,0 +1,383 @@
+.page {
+  background:
+    radial-gradient(circle at top left, rgba(22, 126, 82, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fcf8 0%, #f2f7f4 100%);
+}
+
+.breadcrumbBar {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(15, 73, 53, 0.10);
+  padding: 0 24px;
+}
+
+.breadcrumbInner,
+.mainWrap,
+.relatedWrap,
+.categoryWrap {
+  width: min(1140px, 100%);
+  margin: 0 auto;
+}
+
+.breadcrumbInner {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #6d8578;
+}
+
+.breadcrumbLink {
+  color: #0f5f43;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.pageBody {
+  padding: 48px 24px 72px;
+}
+
+.mainWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.galleryCard,
+.summaryCard,
+.trustCard,
+.relatedSection,
+.categorySection {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 73, 53, 0.10);
+  border-radius: 28px;
+  box-shadow: 0 18px 40px rgba(16, 63, 44, 0.08);
+}
+
+.galleryCard {
+  position: sticky;
+  top: 108px;
+  overflow: hidden;
+  padding-bottom: 14px;
+}
+
+.galleryImageWrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(140deg, #eef7f1, #dcefe3);
+}
+
+.galleryImage {
+  object-fit: cover;
+}
+
+.galleryThumbStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+  padding: 12px 14px 0;
+}
+
+.galleryThumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 73, 53, 0.14);
+  background: #f8fcf9;
+  padding: 0;
+  cursor: pointer;
+}
+
+.galleryThumbActive {
+  border-color: rgba(15, 73, 53, 0.3);
+  box-shadow: 0 0 0 2px rgba(15, 73, 53, 0.08);
+}
+
+.galleryThumbImage {
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #7a9285;
+}
+
+.summaryColumn {
+  display: grid;
+  gap: 18px;
+}
+
+.summaryCard {
+  padding: 28px;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.brandMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 73, 53, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.brandMeta {
+  display: grid;
+  gap: 4px;
+}
+
+.brandMeta span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #6e897a;
+  font-weight: 700;
+}
+
+.brandMeta strong {
+  color: #123828;
+  font-size: 1rem;
+}
+
+.category {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0f7a56;
+}
+
+.summaryCard h1 {
+  margin-top: 12px;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #103727;
+}
+
+.description {
+  margin-top: 16px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #4d6a5c;
+}
+
+.benefitList {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.benefitList span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1b5a43;
+  border: 1px solid #d2e8db;
+  background: #f1f9f4;
+}
+
+.trustCard {
+  padding: 22px 24px;
+}
+
+.trustCard h2 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 1.4rem;
+  color: #113728;
+}
+
+.trustList {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4b6859;
+  font-size: 14px;
+}
+
+.trustItemDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f8ef;
+  color: #0f7a56;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2rem;
+  color: #113727;
+}
+
+.sectionHeader a {
+  color: #0f5f43;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.relatedSection,
+.categorySection {
+  margin-top: 48px;
+  padding: 28px;
+}
+
+.categorySection {
+  margin-top: 24px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.categoryWrap {
+  margin-bottom: 28px;
+}
+
+.categoryStripLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a8375;
+  white-space: nowrap;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.categoryPills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.categoryPill,
+.categoryPillActive,
+.categoryPillMuted {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.18s ease;
+  touch-action: manipulation;
+}
+
+.categoryPill {
+  color: #0f5f43;
+  background: #eef8f2;
+  border: 1px solid #cfe5d8;
+}
+
+.categoryPill:active {
+  transform: scale(0.96);
+}
+
+.categoryPillActive {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  border: 1px solid transparent;
+}
+
+.categoryPillMuted {
+  color: #516c5e;
+  background: #ffffff;
+  border: 1px solid #d6e4da;
+}
+
+@media (max-width: 960px) {
+  .mainWrap {
+    grid-template-columns: 1fr;
+  }
+
+  .galleryCard {
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .pageBody,
+  .breadcrumbBar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .summaryCard,
+  .trustCard,
+  .relatedSection,
+  .categorySection,
+  .galleryCard {
+    border-radius: 22px;
+  }
+
+  .summaryCard,
+  .trustCard,
+  .relatedSection,
+  .categorySection {
+    padding: 22px;
+  }
+
+  .categorySection {
+    align-items: flex-start;
+  }
+
+  .relatedGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,65 +1,364 @@
-import Image from "next/image";
+import Image from 'next/image'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import { getBestSellerProductIds } from '@/lib/server/bestSellers'
+import { storeConfig } from '@/lib/config'
+import { moneyWithSymbol } from '@/lib/money'
+import TrackedLink from '@/components/TrackedLink'
+import styles from './homepage.module.css'
 
-export default function Home() {
+type RawProduct = {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  image: string | null
+  category: string | null
+  price: number | null
+  stock: number | null
+  is_active: boolean
+  product_variants: Array<{ price: number | null }> | null
+}
+
+type ProductView = {
+  id: string
+  name: string
+  slug: string
+  description: string
+  image: string | null
+  category: string
+  startingPrice: number
+  stock: number
+}
+
+const QUALITY_CERTS = ['ISO 22000:2018 Certified', 'HACCP Certified', 'GMP Certified']
+const NATURAL_CERTS = ['Organic Certified', 'Halal Certified']
+const EXPORT_CERTS = [
+  'FSSAI Licensed',
+  'APEDA Registered',
+  'Coconut RCMC - CDB',
+  'Spices RCMC - Spices Board',
+  'Export License Holder',
+]
+
+const CHOOSE_US_POINTS = [
+  'Zero Sulphur Policy for cleaner cooking oils',
+  'Direct coconut sourcing for better freshness and traceability',
+  'No chemical solvents or artificial additives',
+  'Certified quality systems and batch-level checks',
+  'Everyday products curated for family wellness',
+  'Simple checkout and reliable delivery experience',
+]
+
+type CategoryCollection = {
+  title: string
+  detail: string
+  href: string
+}
+
+export const metadata = {
+  title: `${storeConfig.brandName} - Retail Store for Natural Foods`,
+  description:
+    'Shop sulphur-free coconut oil, sesame oil, honey, and natural foods for everyday home use. Trusted quality, clean processing, and fast delivery across India.',
+}
+
+const TRUST_ROW = ['ISO Certified', 'FSSAI Licensed', '100% Natural'] as const
+
+function getStartingPrice(product: RawProduct): number {
+  const prices = (product.product_variants ?? [])
+    .map((variant) => Number(variant.price ?? 0))
+    .filter((price) => Number.isFinite(price) && price > 0)
+
+  if (prices.length > 0) return Math.min(...prices)
+  return Number(product.price ?? 0)
+}
+
+function toProductView(product: RawProduct): ProductView {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description ?? 'Traditional processing with clean, natural ingredients.',
+    image: product.image,
+    category: product.category ?? 'Natural Product',
+    startingPrice: getStartingPrice(product),
+    stock: Number(product.stock ?? 0),
+  }
+}
+
+function pickHeroProduct(products: ProductView[]): ProductView | null {
+  if (products.length === 0) return null
+  return products.find((product) => Boolean(product.image)) ?? products[0]
+}
+
+function buildCategoryCollections(products: ProductView[]): CategoryCollection[] {
+  const counts = new Map<string, number>()
+
+  for (const product of products) {
+    const category = product.category.trim()
+    if (!category) continue
+    counts.set(category, (counts.get(category) ?? 0) + 1)
+  }
+
+  return Array.from(counts.entries())
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .map(([title, count]) => ({
+      title,
+      detail: `${count} product${count === 1 ? '' : 's'} available in this collection.`,
+      href: `/products?category=${encodeURIComponent(title)}`,
+    }))
+}
+
+export default async function HomePage() {
+  const { data } = await supabase
+    .from('products')
+    .select('id,name,slug,description,image,category,price,stock,is_active,product_variants(price)')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(12)
+
+  const products = ((data as RawProduct[] | null) ?? []).map(toProductView)
+  const bestSellerProductIds = new Set(await getBestSellerProductIds(10))
+  const featuredProducts = products.slice(0, 6)
+  const rankedBestSellers = products.filter((product) => bestSellerProductIds.has(product.id)).slice(0, 6)
+  const bestSellers = rankedBestSellers.length > 0
+    ? rankedBestSellers
+    : products.slice(6, 12).length > 0
+      ? products.slice(6, 12)
+      : featuredProducts
+  const heroProduct = pickHeroProduct(products)
+  const categoryCollections = buildCategoryCollections(products)
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className={styles.page}>
+      <section className={styles.hero}>
+        <div className={styles.heroGlow} aria-hidden="true" />
+        <div className={styles.heroInner}>
+          <div className={styles.heroContent}>
+            <span className={styles.heroKicker}>Clean Natural Foods for Everyday Homes</span>
+            <h1 className={styles.heroTitle}>Zero Sulphur. Zero Compromise.</h1>
+            <p className={styles.heroText}>
+              Discover sulphur-free coconut oil, cold-pressed sesame oil, natural honey, and wholesome
+              pantry staples made with clean processing and strict quality checks. Crafted in Kerala,
+              made for modern kitchens and health-conscious families.
+            </p>
+            <div className={styles.heroCtaRow}>
+              <TrackedLink
+                href="/products"
+                className={`${styles.button} ${styles.buttonPrimary}`}
+                eventName="homepage_cta_shop_now_click"
+                eventData={{ location: 'hero' }}
+              >
+                Shop Now
+              </TrackedLink>
+              <TrackedLink
+                href="#certifications"
+                className={`${styles.button} ${styles.buttonGhost}`}
+                eventName="homepage_cta_why_trust_click"
+                eventData={{ location: 'hero' }}
+              >
+                Why Trust Us
+              </TrackedLink>
+            </div>
+            <div className={styles.heroTrustRow}>
+              {TRUST_ROW.map((item) => (
+                <span key={item} className={styles.heroTrustChip}>{item}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.heroVisual}>
+            <div className={styles.heroImageCard}>
+              {heroProduct?.image ? (
+                <Image
+                  src={heroProduct.image}
+                  alt={heroProduct.name}
+                  fill
+                  unoptimized
+                  priority
+                  className={styles.heroImage}
+                />
+              ) : (
+                <div className={styles.heroPlaceholder}>
+                  <span>Sulphur-Free Coconut Oil</span>
+                </div>
+              )}
+              <div className={styles.heroImageOverlay}>
+                <span>From {storeConfig.brandName}</span>
+                <strong>{heroProduct?.name ?? 'Sulphur-Free Coconut Oil'}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHead}>
+          <p className={styles.sectionKicker}>Featured Products</p>
+          <h2>Clean oils and natural essentials for daily use</h2>
+        </div>
+        <ProductGrid products={featuredProducts} emptyText="Featured products will appear here soon." />
+      </section>
+
+      <section
+        id="certifications"
+        className={`${styles.section} ${styles.sectionAlt}`}
+        style={{ scrollMarginTop: '104px' }}
+      >
+        <div className={styles.sectionHead}>
+          <p className={styles.sectionKicker}>Certifications</p>
+          <h2>Certified Quality You Can Trust</h2>
+          <p>Maintaining international food safety and quality standards.</p>
+        </div>
+
+        <div className={styles.certificationGroupGrid}>
+          <CertificationGroup title="Quality and Safety" items={QUALITY_CERTS} />
+          <CertificationGroup title="Natural and Compliance" items={NATURAL_CERTS} />
+          <CertificationGroup title="Government and Export" items={EXPORT_CERTS} />
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHead}>
+          <p className={styles.sectionKicker}>Why Choose Us</p>
+          <h2>Built for families who read every label</h2>
+        </div>
+
+        <div className={styles.featureGrid}>
+          {CHOOSE_US_POINTS.map((point) => (
+            <article key={point} className={styles.featureCard}>
+              <span className={styles.featureDot} aria-hidden="true" />
+              <h3>{point}</h3>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={`${styles.section} ${styles.sectionAlt}`}>
+        <div className={styles.sectionHead}>
+          <p className={styles.sectionKicker}>Collections</p>
+          <h2>Product Range</h2>
+        </div>
+
+        <div className={styles.collectionGrid}>
+          {categoryCollections.length > 0 ? categoryCollections.map((category) => (
+            <Link key={category.title} href={category.href} className={styles.collectionCard}>
+              <h3>{category.title}</h3>
+              <p>{category.detail}</p>
+              <span>Explore</span>
+            </Link>
+          )) : (
+            <Link href="/products" className={styles.collectionCard}>
+              <h3>All Products</h3>
+              <p>Your live collections will appear here as products are added to categories.</p>
+              <span>Explore</span>
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {bestSellers.length > 0 ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <p className={styles.sectionKicker}>Best Sellers</p>
+            <h2>Most-loved natural products</h2>
+          </div>
+          <ProductGrid products={bestSellers} emptyText="Best sellers will appear here as your catalog grows." showBestSellerBadge />
+        </section>
+      ) : null}
+
+      <section
+        id="story"
+        className={`${styles.section} ${styles.sectionAlt}`}
+        style={{ scrollMarginTop: '104px' }}
+      >
+        <div className={styles.storyCard}>
+          <p className={styles.sectionKicker}>Brand Story</p>
+          <h2>Traditional roots. Modern quality confidence.</h2>
+          <p>
+            {storeConfig.brandName} was founded to preserve traditional food preparation with uncompromising
+            quality discipline. Every batch follows heritage-inspired methods, strict quality checks,
+            and clean processing practices designed for everyday family wellbeing.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      <section className={styles.finalCta}>
+        <h2>Bring home clean, trusted natural products</h2>
+        <p>Shop Millco essentials for better cooking, better nutrition, and everyday confidence.</p>
+        <TrackedLink
+          href="/products"
+          className={`${styles.button} ${styles.buttonPrimary}`}
+          eventName="homepage_cta_shop_now_click"
+          eventData={{ location: 'final-cta' }}
+        >
+          Shop Now
+        </TrackedLink>
+      </section>
     </div>
-  );
+  )
+}
+
+function CertificationGroup({ title, items }: { title: string; items: string[] }) {
+  return (
+    <article className={styles.certificationGroup}>
+      <h3>{title}</h3>
+      <div className={styles.certificationBadgeWrap}>
+        {items.map((item) => (
+          <div key={item} className={styles.certificationBadge}>
+            <span className={styles.badgeIcon} aria-hidden="true">
+              ✓
+            </span>
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
+function ProductGrid({
+  products,
+  emptyText,
+  showBestSellerBadge = false,
+}: {
+  products: ProductView[]
+  emptyText: string
+  showBestSellerBadge?: boolean
+}) {
+  if (products.length === 0) {
+    return <p className={styles.emptyState}>{emptyText}</p>
+  }
+
+  return (
+    <div className={styles.productGrid}>
+      {products.map((product) => (
+        <Link key={product.id} href={`/products/${product.slug}`} className={styles.productCard}>
+          <div className={styles.productImageWrap}>
+            {showBestSellerBadge ? <span className={styles.bestSellerBadge}>Best Seller</span> : null}
+            {product.stock > 0 && product.stock <= 10 ? (
+              <span className={styles.lowStockBadge}>Only {product.stock} left</span>
+            ) : null}
+            {product.image ? (
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                unoptimized
+                className={styles.productImage}
+              />
+            ) : (
+              <div className={styles.productImagePlaceholder}>No image</div>
+            )}
+          </div>
+          <div className={styles.productBody}>
+            <p className={styles.productCategory}>{product.category}</p>
+            <h3>{product.name}</h3>
+            <p className={styles.productPrice}>From {moneyWithSymbol(product.startingPrice)}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
 }

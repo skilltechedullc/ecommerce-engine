@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, type MouseEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { addToCart, emitCartUpdated } from '@/lib/cart'
 import { moneyWithSymbol } from '@/lib/money'
 import styles from './ProductCard.module.css'
@@ -62,9 +62,7 @@ export default function ProductCard({
   const isLowStock = Number.isFinite(stock) && stock > 0 && stock <= 10
   const inStock = Boolean(displayVariant) ? stock > 0 : Number.isFinite(stock) ? stock > 0 : true
 
-  function handleQuickAdd(event: MouseEvent<HTMLButtonElement>) {
-    event.preventDefault()
-    event.stopPropagation()
+  function triggerQuickAdd() {
     if (!inStock || displayPrice <= 0) return
 
     // If no real variant ID is available, navigate to the product page instead
@@ -87,6 +85,25 @@ export default function ProductCard({
     window.dispatchEvent(new Event('cart-open'))
     setAdded(true)
     window.setTimeout(() => setAdded(false), 1500)
+  }
+
+  function handleQuickAdd(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    triggerQuickAdd()
+  }
+
+  function handleInlineCtaClick(event: MouseEvent<HTMLSpanElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    triggerQuickAdd()
+  }
+
+  function handleInlineCtaKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    event.stopPropagation()
+    triggerQuickAdd()
   }
 
   return (
@@ -131,7 +148,16 @@ export default function ProductCard({
               </div>
             </div>
 
-            <span className={styles.cta}>Buy Now</span>
+            <span
+              className={styles.cta}
+              role="button"
+              tabIndex={0}
+              aria-label={`Quick add ${product.name} to cart`}
+              onClick={handleInlineCtaClick}
+              onKeyDown={handleInlineCtaKeyDown}
+            >
+              Buy Now
+            </span>
           </div>
         </div>
       </Link>

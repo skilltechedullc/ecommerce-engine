@@ -26,6 +26,7 @@ export default function WhatsAppButton() {
 
   return (
     <a
+      className="whatsAppFloatingButton"
       href={WA_URL}
       target="_blank"
       rel="noopener noreferrer"

@@ -424,6 +424,35 @@
     width: 90vw;
   }
 
+  .body {
+    padding: 10px 14px 12px;
+  }
+
+  .footer {
+    padding: 10px 14px 12px;
+  }
+
+  .shippingProgressCard {
+    margin-bottom: 10px;
+    padding: 8px;
+  }
+
+  .shippingProgressNote,
+  .shippingNote,
+  .trustRow {
+    display: none;
+  }
+
+  .checkoutButton {
+    margin-top: 10px;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .secondaryActions {
+    margin-top: 8px;
+  }
+
   .secondaryActions {
     grid-template-columns: 1fr;
   }

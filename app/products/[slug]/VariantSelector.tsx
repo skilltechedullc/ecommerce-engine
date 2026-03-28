@@ -52,6 +52,8 @@ export default function VariantSelector({
   const stock = selected?.stock ?? 0
   const inStock = stock > 0
   const canPurchase = Boolean(selected) && inStock
+  const stickyVariantLabel = selected ? (selected.name ?? selected.weight ?? 'Selected variant') : 'Select a variant'
+  const stickyMetaLine = selected ? `${stickyVariantLabel} · ${moneyWithSymbol(price)}` : stickyVariantLabel
 
   function handleVariantSelect(variantId: string) {
     if (selectedId == null) {
@@ -153,8 +155,8 @@ export default function VariantSelector({
       <div className={styles.stickySpacer} aria-hidden="true" />
       <div className={styles.stickyBar}>
         <div className={styles.stickyMeta}>
-          <span>{selected ? selected.name ?? selected.weight ?? 'Selected variant' : 'Select a variant'}</span>
-          <strong>{moneyWithSymbol(price)}</strong>
+          <span className={styles.stickyProductName}>{productName}</span>
+          <strong>{stickyMetaLine}</strong>
         </div>
         <button type="button" onClick={handleAdd} disabled={!canPurchase} className={styles.stickyButton}>
           {added ? 'Added' : 'Add to Cart'}

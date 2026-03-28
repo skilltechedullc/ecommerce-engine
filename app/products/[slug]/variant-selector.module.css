@@ -295,6 +295,15 @@
     min-width: 0;
   }
 
+  .stickyProductName {
+    font-size: 12px;
+    color: #173f2f;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
   .stickyMeta span {
     font-size: 11px;
     color: #5b7869;
@@ -304,9 +313,13 @@
   }
 
   .stickyMeta strong {
-    font-size: 15px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
     color: #123f2e;
-    font-family: var(--font-playfair), Georgia, serif;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   .stickyButton {

@@ -12,8 +12,8 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://checkout.razorpay.com https://api.resend.com https://www.google-analytics.com https://www.googletagmanager.com${isProd ? '' : ' ws://localhost:* wss://localhost:* http://localhost:*'}`,
-  "frame-src 'self' https://checkout.razorpay.com",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com https://api.resend.com https://www.google-analytics.com https://www.googletagmanager.com${isProd ? '' : ' ws://localhost:* wss://localhost:* http://localhost:*'}`,
+  "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com",
   ...(isProd ? ['upgrade-insecure-requests'] : []),
 ].join('; ')
 

@@ -18,7 +18,7 @@
   top: 0;
   right: 0;
   height: 100dvh;
-  width: min(430px, 92vw);
+  width: min(390px, 88vw);
   background: #ffffff;
   border-left: 1px solid rgba(15, 73, 53, 0.1);
   box-shadow: -10px 0 30px rgba(16, 63, 44, 0.12);
@@ -31,6 +31,10 @@
 
 .drawerOpen {
   transform: translateX(0);
+}
+
+.drawerDragging {
+  transition: none;
 }
 
 .header {
@@ -417,7 +421,7 @@
 
 @media (max-width: 520px) {
   .drawer {
-    width: 94vw;
+    width: 90vw;
   }
 
   .secondaryActions {

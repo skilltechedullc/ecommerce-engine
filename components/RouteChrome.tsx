@@ -9,7 +9,7 @@ import MiniCartDrawer from '@/components/MiniCartDrawer'
 export default function RouteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin') ?? false
-  const isCheckout = pathname === '/checkout'
+  const hideWhatsAppFloat = pathname === '/checkout' || pathname === '/cart'
 
   if (isAdminRoute) {
     return <>{children}</>
@@ -19,7 +19,7 @@ export default function RouteChrome({ children }: { children: React.ReactNode })
     <>
       <Header />
       <MiniCartDrawer />
-      {!isCheckout && <WhatsAppButton />}
+      {!hideWhatsAppFloat && <WhatsAppButton />}
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </>

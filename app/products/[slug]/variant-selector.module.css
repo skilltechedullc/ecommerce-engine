@@ -285,6 +285,10 @@
     backdrop-filter: blur(8px);
   }
 
+  :global(body.minicart-open) .stickyBar {
+    display: none;
+  }
+
   .stickyMeta {
     display: grid;
     gap: 2px;

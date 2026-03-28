@@ -23,6 +23,8 @@ function getServerSnapshot(): CartItem[] {
 
 const NAV_CLOSE_DELAY_MS = 180
 const FREE_SHIPPING_THRESHOLD = 999
+const SWIPE_CLOSE_THRESHOLD_PX = 82
+const SWIPE_DRAG_CAP_PX = 140
 
 export default function MiniCartDrawer() {
   const router = useRouter()
@@ -30,7 +32,13 @@ export default function MiniCartDrawer() {
   const [open, setOpen] = useState(false)
   const [addedNoticeVisible, setAddedNoticeVisible] = useState(false)
   const [upsellProduct, setUpsellProduct] = useState<UpsellProduct | null>(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const navigationTimerRef = useRef<number | null>(null)
+  const touchStartXRef = useRef(0)
+  const touchStartYRef = useRef(0)
+  const touchDeltaXRef = useRef(0)
+  const touchLockRef = useRef<'horizontal' | 'vertical' | null>(null)
 
   const itemCount = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -49,12 +57,16 @@ export default function MiniCartDrawer() {
 
   useEffect(() => {
     function handleOpen() {
+      setDragOffset(0)
+      setIsDragging(false)
       setOpen(true)
       setAddedNoticeVisible(true)
       window.setTimeout(() => setAddedNoticeVisible(false), 1800)
     }
 
     function handleOpenFromHeader() {
+      setDragOffset(0)
+      setIsDragging(false)
       setOpen(true)
     }
 
@@ -76,10 +88,12 @@ export default function MiniCartDrawer() {
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    document.body.classList.add('minicart-open')
     window.addEventListener('keydown', onKeyDown)
 
     return () => {
       document.body.style.overflow = previousOverflow
+      document.body.classList.remove('minicart-open')
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [open])
@@ -118,7 +132,59 @@ export default function MiniCartDrawer() {
   }, [])
 
   function closeDrawer() {
+    setDragOffset(0)
+    setIsDragging(false)
     setOpen(false)
+  }
+
+  function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
+    const touch = event.touches[0]
+    touchStartXRef.current = touch.clientX
+    touchStartYRef.current = touch.clientY
+    touchDeltaXRef.current = 0
+    touchLockRef.current = null
+    setIsDragging(false)
+  }
+
+  function handleTouchMove(event: React.TouchEvent<HTMLElement>) {
+    if (!open) return
+
+    const touch = event.touches[0]
+    const deltaX = touch.clientX - touchStartXRef.current
+    const deltaY = touch.clientY - touchStartYRef.current
+    const absX = Math.abs(deltaX)
+    const absY = Math.abs(deltaY)
+
+    if (touchLockRef.current == null && (absX > 8 || absY > 8)) {
+      touchLockRef.current = absX > absY ? 'horizontal' : 'vertical'
+    }
+
+    if (touchLockRef.current !== 'horizontal') return
+
+    if (deltaX <= 0) {
+      setIsDragging(false)
+      setDragOffset(0)
+      touchDeltaXRef.current = 0
+      return
+    }
+
+    setIsDragging(true)
+    touchDeltaXRef.current = deltaX
+    setDragOffset(Math.min(deltaX, SWIPE_DRAG_CAP_PX))
+  }
+
+  function handleTouchEnd() {
+    if (!open) return
+
+    if (touchLockRef.current === 'horizontal' && touchDeltaXRef.current >= SWIPE_CLOSE_THRESHOLD_PX) {
+      closeDrawer()
+    } else {
+      setDragOffset(0)
+      setIsDragging(false)
+    }
+
+    touchLockRef.current = null
+    touchDeltaXRef.current = 0
   }
 
   function adjustQuantity(item: CartItem, nextQuantity: number) {
@@ -150,10 +216,15 @@ export default function MiniCartDrawer() {
       />
 
       <aside
-        className={`${styles.drawer} ${open ? styles.drawerOpen : ''}`}
+        className={`${styles.drawer} ${open ? styles.drawerOpen : ''} ${isDragging ? styles.drawerDragging : ''}`}
+        style={open ? { transform: `translateX(${dragOffset}px)` } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label="Your cart"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         <header className={styles.header}>
           <div>

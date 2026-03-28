@@ -162,6 +162,32 @@
   box-shadow: 0 24px 54px rgba(14, 56, 40, 0.13);
 }
 
+.heroCarousel {
+  display: flex;
+  min-height: 470px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heroCarousel::-webkit-scrollbar {
+  display: none;
+}
+
+.heroSlide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 100%;
+  min-height: 470px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+}
+
 .heroImage,
 .productImage {
   object-fit: cover;
@@ -514,6 +540,11 @@
   .heroImageCard {
     min-height: 380px;
   }
+
+  .heroCarousel,
+  .heroSlide {
+    min-height: 380px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -544,6 +575,11 @@
   }
 
   .heroImageCard {
+    min-height: 320px;
+  }
+
+  .heroCarousel,
+  .heroSlide {
     min-height: 320px;
   }
 

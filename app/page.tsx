@@ -91,6 +91,17 @@ function pickHeroProduct(products: ProductView[]): ProductView | null {
   return products.find((product) => Boolean(product.image)) ?? products[0]
 }
 
+function buildHeroProducts(products: ProductView[]): ProductView[] {
+  const imageProducts = products.filter((product) => Boolean(product.image))
+  if (imageProducts.length === 0) return products.slice(0, 3)
+
+  const primary = pickHeroProduct(imageProducts)
+  if (!primary) return imageProducts.slice(0, 3)
+
+  const others = imageProducts.filter((product) => product.id !== primary.id).slice(0, 2)
+  return [primary, ...others]
+}
+
 function buildCategoryCollections(products: ProductView[]): CategoryCollection[] {
   const counts = new Map<string, number>()
 
@@ -128,6 +139,7 @@ export default async function HomePage() {
       ? products.slice(6, 12)
       : featuredProducts
   const heroProduct = pickHeroProduct(products)
+  const heroProducts = buildHeroProducts(products)
   const categoryCollections = buildCategoryCollections(products)
 
   return (
@@ -170,24 +182,58 @@ export default async function HomePage() {
 
           <div className={styles.heroVisual}>
             <div className={styles.heroImageCard}>
-              {heroProduct?.image ? (
-                <Image
-                  src={heroProduct.image}
-                  alt={heroProduct.name}
-                  fill
-                  unoptimized
-                  priority
-                  className={styles.heroImage}
-                />
-              ) : (
-                <div className={styles.heroPlaceholder}>
-                  <span>Sulphur-Free Coconut Oil</span>
+              {heroProducts.length > 0 ? (
+                <div className={styles.heroCarousel}>
+                  {heroProducts.map((product, index) => (
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.slug}`}
+                      className={styles.heroSlide}
+                      aria-label={`View ${product.name}`}
+                    >
+                      {product.image ? (
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          fill
+                          unoptimized
+                          priority={index === 0}
+                          className={styles.heroImage}
+                        />
+                      ) : (
+                        <div className={styles.heroPlaceholder}>
+                          <span>{product.name}</span>
+                        </div>
+                      )}
+                      <div className={styles.heroImageOverlay}>
+                        <span>From {storeConfig.brandName}</span>
+                        <strong>{product.name}</strong>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
+              ) : (
+                <>
+                  {heroProduct?.image ? (
+                    <Image
+                      src={heroProduct.image}
+                      alt={heroProduct.name}
+                      fill
+                      unoptimized
+                      priority
+                      className={styles.heroImage}
+                    />
+                  ) : (
+                    <div className={styles.heroPlaceholder}>
+                      <span>Sulphur-Free Coconut Oil</span>
+                    </div>
+                  )}
+                  <div className={styles.heroImageOverlay}>
+                    <span>From {storeConfig.brandName}</span>
+                    <strong>{heroProduct?.name ?? 'Sulphur-Free Coconut Oil'}</strong>
+                  </div>
+                </>
               )}
-              <div className={styles.heroImageOverlay}>
-                <span>From {storeConfig.brandName}</span>
-                <strong>{heroProduct?.name ?? 'Sulphur-Free Coconut Oil'}</strong>
-              </div>
             </div>
           </div>
         </div>

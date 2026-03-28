@@ -497,6 +497,7 @@
 }
 
 @media (max-width: 980px) {
+  .hero,
   .body {
     grid-template-columns: 1fr;
   }

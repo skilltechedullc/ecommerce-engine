@@ -1,17 +1,18 @@
 import type { CSSProperties } from 'react'
+import { tenantConfig } from '@/lib/tenant.config'
 
 // ── Brand Colours ──────────────────────────────────────────────
 export const colors = {
-  primary:       '#0F3D2E',
-  primaryHover:  '#1A5C40',
-  accent:        '#C8A951',
+  primary:       tenantConfig.branding.colors.primary,
+  primaryHover:  tenantConfig.branding.colors.primaryGradientEnd,
+  accent:        tenantConfig.branding.colors.accent,
   accentLight:   '#F5EAC5',
-  bg:            '#F7F5F0',
-  surface:       '#FFFFFF',
+  bg:            tenantConfig.branding.colors.background,
+  surface:       tenantConfig.branding.colors.surface,
   surfaceAlt:    '#F3EEE6',
   greenLight:    '#EBF4EE',
   greenBorder:   '#B8D8C8',
-  text:          '#1E1E1E',
+  text:          tenantConfig.branding.colors.foreground,
   textMuted:     '#6B6B6B',
   textLight:     '#9A9A9A',
   border:        '#EDE8DF',
@@ -61,7 +62,7 @@ export const btnPrimary: CSSProperties = {
   alignItems:     'center',
   justifyContent: 'center',
   gap:            '8px',
-  backgroundColor: '#1B4332',
+  backgroundColor: tenantConfig.branding.colors.primary,
   color:          '#FFFFFF',
   border:         'none',
   borderRadius:   '10px',
@@ -97,7 +98,7 @@ export const btnAccent: CSSProperties = {
   alignItems:     'center',
   justifyContent: 'center',
   gap:            '8px',
-  backgroundColor: '#C9A84C',
+  backgroundColor: tenantConfig.branding.colors.accent,
   color:          '#FFFFFF',
   border:         'none',
   borderRadius:   '10px',

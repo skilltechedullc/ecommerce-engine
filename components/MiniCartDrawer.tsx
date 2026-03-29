@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { useRouter } from 'next/navigation'
 import { getCartSnapshot, removeFromCart, updateQuantity, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { formatMoney } from '@/lib/money'
+import { tenantConfig } from '@/lib/tenant.config'
 import styles from './MiniCartDrawer.module.css'
 
 type UpsellProduct = {
@@ -335,14 +336,13 @@ export default function MiniCartDrawer() {
               <strong>{formatMoney(subtotal)}</strong>
             </div>
             <p className={styles.shippingNote}>
-              Packed within 2 to 6 business hours. Most orders dispatch in about 24 hours.
-              Exact delivery ETA is shared once tracking is generated.
+              {tenantConfig.marketing.miniCart.shippingNote}
             </p>
 
             <div className={styles.trustRow}>
-              <span>Secure checkout</span>
-              <span>Fresh dispatch</span>
-              <span>Verified products</span>
+              {tenantConfig.marketing.miniCart.trustBadges.map((badge) => (
+                <span key={badge}>{badge}</span>
+              ))}
             </div>
 
             <button onClick={() => goTo('/checkout')} className={styles.checkoutButton}>

@@ -1,7 +1,8 @@
 import { storeConfig } from '@/lib/config'
+import { tenantConfig } from '@/lib/tenant.config'
 
 export function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('en-IN', {
+  return new Intl.NumberFormat(tenantConfig.region.numberLocale, {
     style: 'currency',
     currency: storeConfig.currency,
     maximumFractionDigits: 0,
@@ -9,5 +10,5 @@ export function formatMoney(amount: number): string {
 }
 
 export function moneyWithSymbol(amount: number): string {
-  return `${storeConfig.currencySymbol}${amount.toLocaleString('en-IN')}`
+  return `${storeConfig.currencySymbol}${amount.toLocaleString(tenantConfig.region.numberLocale)}`
 }

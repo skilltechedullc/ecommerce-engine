@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { getCartSnapshot, subscribeToCart, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { trackEvent } from '@/lib/analytics'
+import { tenantConfig } from '@/lib/tenant.config'
 import styles from './header.module.css'
 
 const EMPTY_CART: CartItem[] = []
@@ -126,7 +127,7 @@ export default function Header() {
           <div className={styles.mobileHeader}>
             <div className={styles.mobileHeaderMeta}>
               <span>{storeConfig.brandName}</span>
-              <strong>Natural and certified foods</strong>
+              <strong>{tenantConfig.marketing.header.mobileSubtitle}</strong>
             </div>
             <button onClick={() => setMenuOpen(false)} className={styles.menuButton} style={{ display: 'inline-flex' }} aria-label="Close menu">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -160,7 +161,7 @@ export default function Header() {
           </nav>
 
           <div className={styles.mobileFooter}>
-            Carefully sourced staples, traditional processing, and secure checkout from {storeConfig.brandName}.
+            {tenantConfig.marketing.header.mobileFooter} From {storeConfig.brandName}.
           </div>
         </div>
       </div>

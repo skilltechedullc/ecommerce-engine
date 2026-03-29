@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { storeConfig } from '@/lib/config'
+import { tenantConfig } from '@/lib/tenant.config'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -55,7 +56,7 @@ export default function AdminLoginPage() {
       >
         {/* Header */}
         <div style={{ marginBottom: '32px' }}>
-          <p style={{ fontSize: '11px', color: '#1B4332', letterSpacing: '1.8px', textTransform: 'uppercase', margin: '0 0 6px', fontWeight: '600' }}>
+          <p style={{ fontSize: '11px', color: tenantConfig.branding.colors.primary, letterSpacing: '1.8px', textTransform: 'uppercase', margin: '0 0 6px', fontWeight: '600' }}>
             {storeConfig.brandName}
           </p>
           <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#111827', margin: 0 }}>
@@ -97,7 +98,7 @@ export default function AdminLoginPage() {
             disabled={loading}
             style={{
               padding: '11px',
-              backgroundColor: loading ? '#7AAF9A' : '#1B4332',
+              backgroundColor: loading ? '#7AAF9A' : tenantConfig.branding.colors.primary,
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',

@@ -330,7 +330,7 @@
 
 .categoryPillActive {
   color: #ffffff;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   border: 1px solid transparent;
 }
 

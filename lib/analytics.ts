@@ -1,5 +1,7 @@
 'use client'
 
+import { tenantConfig } from '@/lib/tenant.config'
+
 type EventPayload = Record<string, string | number | boolean | null | undefined>
 
 export function trackEvent(eventName: string, payload: EventPayload = {}) {
@@ -23,5 +25,5 @@ export function trackEvent(eventName: string, payload: EventPayload = {}) {
     win.gtag('event', eventName, eventPayload)
   }
 
-  window.dispatchEvent(new CustomEvent('millco-analytics', { detail: { eventName, payload: eventPayload } }))
+  window.dispatchEvent(new CustomEvent(tenantConfig.analytics.eventNamespace, { detail: { eventName, payload: eventPayload } }))
 }

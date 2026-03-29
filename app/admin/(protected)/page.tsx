@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
+import { tenantConfig } from '@/lib/tenant.config'
 
 type OrderItem = {
   product_name: string | null
@@ -21,7 +22,7 @@ function dateKey(date: Date) {
 }
 
 function shortDayLabel(date: Date) {
-  return date.toLocaleDateString('en-IN', { weekday: 'short' })
+  return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short' })
 }
 
 export default async function AdminDashboard() {
@@ -175,12 +176,12 @@ export default async function AdminDashboard() {
                         <p className="admin-tableProduct__name">#{order.id.slice(0, 8).toUpperCase()}</p>
                         <p className="admin-tableProduct__meta">
                           {order.created_at
-                            ? new Date(order.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            ? new Date(order.created_at).toLocaleString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
                             : 'Unknown time'}
                         </p>
                       </div>
                     </td>
-                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
                     <td>
                       <Link href={`/admin/orders/${order.id}`} className="admin-button admin-button--secondary admin-button--small">

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
+import { buildTenantWhatsAppUrl, tenantConfig } from '@/lib/tenant.config'
 import styles from './success.module.css'
 
 export const metadata = {
@@ -101,15 +102,10 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const allCandidates = (products ?? []) as RecommendedProduct[]
   const withoutPurchased = allCandidates.filter((product) => !purchasedProductIds.has(String(product.id)))
   const recommendedProducts = (withoutPurchased.length > 0 ? withoutPurchased : allCandidates).slice(0, 2)
-  const whatsAppNumber = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').trim()
-  const supportMessage = encodeURIComponent(
-    orderId
-      ? `Hi, I need help with my order ${orderId}.`
-      : 'Hi, I need help with my recent order.'
-  )
-  const supportUrl = whatsAppNumber
-    ? `https://wa.me/${whatsAppNumber}?text=${supportMessage}`
-    : ''
+  const supportMessage = orderId
+    ? `Hi, I need help with my order ${orderId}.`
+    : tenantConfig.marketing.whatsapp.orderHelpMessage
+  const supportUrl = buildTenantWhatsAppUrl(supportMessage)
 
   return (
     <div className={styles.page}>
@@ -126,7 +122,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
         <h1>Order confirmed.</h1>
         <p className={styles.lead}>
-          Your payment is successful and your order is now in our system. Order details have been sent to your email and can also be shared via WhatsApp support if needed.
+          {tenantConfig.marketing.success.lead}
         </p>
 
         <div className={styles.pillRow}>
@@ -167,11 +163,11 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           <div className={styles.stepList}>
             <div className={styles.stepItem}>
               <strong>Order processing</strong>
-              <p>We verify your order and start packing within 2 to 6 business hours.</p>
+              <p>{tenantConfig.marketing.success.processingCopy}</p>
             </div>
             <div className={styles.stepItem}>
               <strong>Dispatch timeline</strong>
-              <p>Most orders are dispatched in about 24 hours. Exact delivery ETA is shared once tracking is generated.</p>
+              <p>{tenantConfig.marketing.success.dispatchCopy}</p>
             </div>
           </div>
         </section>

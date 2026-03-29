@@ -6,6 +6,7 @@ import {
   type EmailOrder,
   type EmailOrderItem,
 } from '@/lib/email'
+import { normalizeTenantPhone } from '@/lib/tenant.config'
 import { optionalEnv } from '@/lib/server/env'
 
 type OrderStatus = 'Pending' | 'Paid' | 'Processing' | 'Shipped' | 'Delivered'
@@ -62,14 +63,7 @@ function templateIdForEvent(event: NotificationEvent): string | undefined {
 }
 
 function normalizePhone(input: string): string {
-  const digits = input.replace(/\D/g, '')
-  if (!digits) return ''
-
-  if (digits.startsWith('91') && digits.length === 12) return `+${digits}`
-  if (digits.length === 10) return `+91${digits}`
-  if (digits.startsWith('0') && digits.length === 11) return `+91${digits.slice(1)}`
-
-  return input.startsWith('+') ? input : `+${digits}`
+  return normalizeTenantPhone(input)
 }
 
 function whatsappVariables(order: NotificationOrder) {

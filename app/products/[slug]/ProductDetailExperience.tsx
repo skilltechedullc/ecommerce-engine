@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
+import { tenantConfig } from '@/lib/tenant.config'
 import VariantSelector from './VariantSelector'
 import styles from './product-detail.module.css'
 
@@ -117,9 +118,9 @@ export default function ProductDetailExperience({
           {productDescription && <p className={styles.description}>{productDescription}</p>}
 
           <div className={styles.benefitList}>
-            <span>Natural ingredients</span>
-            <span>Traditional processing</span>
-            <span>Certified quality checks</span>
+            {tenantConfig.marketing.productDetail.benefits.map((benefit) => (
+              <span key={benefit}>{benefit}</span>
+            ))}
           </div>
 
           <VariantSelector
@@ -132,9 +133,9 @@ export default function ProductDetailExperience({
         </section>
 
         <section className={styles.trustCard}>
-          <h2>Why customers trust this product</h2>
+          <h2>{tenantConfig.marketing.productDetail.trustHeading}</h2>
           <div className={styles.trustList}>
-            {['FSSAI Certified Quality', 'Natural and chemical-free sourcing', 'Traditional processing methods', 'Export-grade quality controls', `Carefully packed by ${brandName}`].map((text) => (
+            {[...tenantConfig.marketing.productDetail.trustItems, `Carefully packed by ${brandName}`].map((text) => (
               <div key={text} className={styles.trustItem}>
                 <span className={styles.trustItemDot}>✓</span>
                 <span>{text}</span>

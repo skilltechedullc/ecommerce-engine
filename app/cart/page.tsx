@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { getCartSnapshot, removeFromCart, updateQuantity, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
+import { buildTenantWhatsAppUrl, tenantConfig } from '@/lib/tenant.config'
 import styles from './cart.module.css'
 
 const EMPTY_CART: CartItem[] = []
@@ -25,7 +26,7 @@ type UpsellProduct = {
 export default function CartPage() {
   const cart = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerSnapshot)
   const [upsellProducts, setUpsellProducts] = useState<UpsellProduct[]>([])
-  const whatsAppNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+  const whatsAppNumber = tenantConfig.contact.whatsappNumber
 
   const handleRemove = (id: string) => {
     removeFromCart(id)
@@ -83,8 +84,8 @@ export default function CartPage() {
                 <span>Items in cart</span>
               </div>
               <div className={styles.heroStat}>
-                <strong>Free</strong>
-                <span>Shipping across India</span>
+                <strong>{tenantConfig.marketing.cart.shippingLabel}</strong>
+                <span>{tenantConfig.region.shippingCoverageLabel}</span>
               </div>
               <div className={styles.heroStat}>
                 <strong>{moneyWithSymbol(total)}</strong>
@@ -98,16 +99,16 @@ export default function CartPage() {
               <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
               <div className={styles.logoMeta}>
                 <span>{storeConfig.brandName}</span>
-                <strong>Certified ingredients. Clean processing. Honest staples.</strong>
+                <strong>{tenantConfig.marketing.cart.miniBrandTitle}</strong>
               </div>
             </div>
             <p>
-              Your basket is part of a slower, more intentional food journey built around purity, consistency, and everyday trust.
+              {tenantConfig.marketing.cart.miniBrandBody}
             </p>
             <div className={styles.pills}>
-              <span className={styles.pill}>No rush packing</span>
-              <span className={styles.pill}>Fresh dispatch</span>
-              <span className={styles.pill}>Secure checkout</span>
+              {tenantConfig.marketing.cart.miniBrandPills.map((pill) => (
+                <span key={pill} className={styles.pill}>{pill}</span>
+              ))}
             </div>
           </aside>
         </section>
@@ -197,8 +198,8 @@ export default function CartPage() {
                   <strong>Free</strong>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>Fulfilment</span>
-                  <strong>Millco dispatch</strong>
+                  <span>{tenantConfig.marketing.cart.fulfilmentLabel}</span>
+                  <strong>{tenantConfig.marketing.cart.fulfilmentValue}</strong>
                 </div>
               </div>
               <div className={styles.divider} />
@@ -224,7 +225,7 @@ export default function CartPage() {
               </Link>
               {whatsAppNumber ? (
                 <a
-                  href={`https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(`Hi ${storeConfig.brandName}, I need help with my cart.`)}`}
+                  href={buildTenantWhatsAppUrl(`Hi ${storeConfig.brandName}, ${tenantConfig.marketing.whatsapp.cartHelpMessage}`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.whatsAppLink}
@@ -232,7 +233,7 @@ export default function CartPage() {
                   Order via WhatsApp
                 </a>
               ) : null}
-              <p className={styles.summaryNote}>Secure payment, delivery details on the next step, and the same product integrity you saw on every collection page.</p>
+              <p className={styles.summaryNote}>{tenantConfig.marketing.cart.summaryNote}</p>
             </aside>
           </section>
         )}

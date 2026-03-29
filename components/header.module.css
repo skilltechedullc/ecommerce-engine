@@ -65,7 +65,7 @@
 .navLink {
   font-size: 12px;
   font-weight: 700;
-  color: #0f3d2e;
+  color: var(--tenant-primary);
   text-decoration: none;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -81,7 +81,7 @@
   padding: 0 16px;
   border-radius: 999px;
   color: #ffffff;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   box-shadow: 0 10px 24px rgba(15, 73, 53, 0.2);
 }
 
@@ -114,7 +114,7 @@
   border-radius: 14px;
   border: 1px solid rgba(15, 73, 53, 0.12);
   background: rgba(255, 255, 255, 0.85);
-  color: #0f3d2e;
+  color: var(--tenant-primary);
   cursor: pointer;
   position: relative;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -136,7 +136,7 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #c8a951;
+  background: var(--tenant-accent);
   color: #ffffff;
   font-size: 10px;
   font-weight: 800;
@@ -251,7 +251,7 @@
 
 .mobileNavCta {
   color: #ffffff;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
 }
 
 .mobileNavLink:active {

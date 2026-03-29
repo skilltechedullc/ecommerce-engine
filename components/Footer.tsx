@@ -1,15 +1,11 @@
 ﻿import Link from 'next/link'
 import Image from 'next/image'
 import { storeConfig } from '@/lib/config'
+import { tenantConfig } from '@/lib/tenant.config'
 
-const CERT_LABELS = [
-  'ISO 22000:2018',
-  'HACCP Certified',
-  'FSSAI Licensed',
-  'APEDA Registered',
-]
+const CERT_LABELS = tenantConfig.marketing.footer.certificationLabels
 
-const TRUST_BADGES = ['Secure Checkout', 'Encrypted Payments', 'Trusted Delivery']
+const TRUST_BADGES = tenantConfig.marketing.footer.trustBadges
 
 const FOOTER_LINK: React.CSSProperties = {
   fontSize: '14px',
@@ -37,7 +33,7 @@ export default function Footer() {
       className="footerRoot"
       style={{
         scrollMarginTop: '104px',
-        backgroundColor: '#0F3D2E',
+        backgroundColor: 'var(--tenant-primary)',
         color: '#A8C4B8',
         padding: '72px 40px 40px',
       }}
@@ -93,8 +89,7 @@ export default function Footer() {
                 margin: '0 0 8px',
               }}
             >
-              Clean, sulphur-free oils and natural foods crafted with strict quality checks.
-              Made in Kerala and delivered for everyday home use with trusted consistency.
+              {tenantConfig.marketing.footer.description}
             </p>
             <p
               style={{
@@ -106,7 +101,7 @@ export default function Footer() {
                 fontStyle: 'italic',
               }}
             >
-              Retail-first online store for healthy cooking and natural living.
+              {tenantConfig.marketing.footer.tagline}
             </p>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxWidth: '320px' }}>
               {CERT_LABELS.map((label) => (
@@ -117,7 +112,7 @@ export default function Footer() {
                     fontWeight: '600',
                     letterSpacing: '0.6px',
                     textTransform: 'uppercase',
-                    color: '#C8A951',
+                    color: 'var(--tenant-accent)',
                     border: '1px solid rgba(200,169,81,0.3)',
                     borderRadius: '4px',
                     padding: '4px 8px',
@@ -160,7 +155,7 @@ export default function Footer() {
             </div>
             <a
               className="businessGateway"
-              href="https://millco.in"
+              href={tenantConfig.branding.businessSiteUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -175,7 +170,7 @@ export default function Footer() {
                 textDecoration: 'none',
                 maxWidth: '320px',
               }}
-              aria-label="Open Millco business website in a new tab"
+              aria-label={tenantConfig.branding.businessSiteAriaLabel}
             >
               <span
                 className="businessGatewayEyebrow"
@@ -187,10 +182,10 @@ export default function Footer() {
                   fontWeight: 700,
                 }}
               >
-                Business &amp; Bulk
+                {tenantConfig.marketing.footer.businessGatewayEyebrow}
               </span>
               <span className="businessGatewayBody" style={{ fontSize: '12px', color: '#7AA898', lineHeight: '1.6' }}>
-                Explore our manufacturing capabilities, export solutions, and wholesale pricing.
+                {tenantConfig.marketing.footer.businessGatewayBody}
               </span>
               <span
                 className="businessGatewayCta"
@@ -201,7 +196,7 @@ export default function Footer() {
                   letterSpacing: '0.01em',
                 }}
               >
-                Visit Millco Business Site -&gt;
+                {tenantConfig.marketing.footer.businessGatewayCta}
               </span>
             </a>
           </div>
@@ -215,23 +210,26 @@ export default function Footer() {
                   {storeConfig.brandName}
                 </p>
                 <p style={{ fontSize: '13px', color: '#7AA898', lineHeight: '1.7', margin: 0 }}>
-                  Thennala, Malappuram
-                  <br />
-                  Kerala 676508, India
+                  {tenantConfig.contact.address.lines.map((line, index) => (
+                    <span key={`${line}-${index}`}>
+                      {line}
+                      {index < tenantConfig.contact.address.lines.length - 1 ? <br /> : null}
+                    </span>
+                  ))}
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <a
-                  href="tel:+919048984814"
+                  href={`tel:${tenantConfig.contact.supportPhone.replace(/\s+/g, '')}`}
                   style={{ fontSize: '13px', color: '#7AA898', textDecoration: 'none' }}
                 >
-                  +91 9048984814
+                  {tenantConfig.contact.supportPhone}
                 </a>
                               <a
-                                href="mailto:info@millco.in"
+                                href={`mailto:${tenantConfig.contact.supportEmail}`}
                                 style={{ fontSize: '13px', color: '#7AA898', textDecoration: 'none' }}
                               >
-                                info@millco.in
+                                {tenantConfig.contact.supportEmail}
                               </a>
               </div>
             </div>
@@ -253,7 +251,7 @@ export default function Footer() {
             &copy; {year} {storeConfig.brandName}. All rights reserved.
           </p>
           <p style={{ fontSize: '12px', color: '#7AA898', margin: 0, fontWeight: 600 }}>
-            Secure checkout powered for safe online orders.
+            {tenantConfig.marketing.footer.secureCheckoutNote}
           </p>
           <p
             style={{
@@ -264,7 +262,7 @@ export default function Footer() {
               margin: 0,
             }}
           >
-            Sulphur-Free Oils | Natural Foods | Retail Store by Millco
+            {tenantConfig.marketing.footer.legalByline}
           </p>
         </div>
       </div>

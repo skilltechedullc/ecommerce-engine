@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
+import { tenantConfig } from '@/lib/tenant.config'
 import TrackedLink from '@/components/TrackedLink'
 import styles from './homepage.module.css'
 
@@ -31,24 +32,11 @@ type ProductView = {
   stock: number
 }
 
-const QUALITY_CERTS = ['ISO 22000:2018 Certified', 'HACCP Certified', 'GMP Certified']
-const NATURAL_CERTS = ['Organic Certified', 'Halal Certified']
-const EXPORT_CERTS = [
-  'FSSAI Licensed',
-  'APEDA Registered',
-  'Coconut RCMC - CDB',
-  'Spices RCMC - Spices Board',
-  'Export License Holder',
-]
+const QUALITY_CERTS = tenantConfig.marketing.home.qualityCertifications
+const NATURAL_CERTS = tenantConfig.marketing.home.naturalCertifications
+const EXPORT_CERTS = tenantConfig.marketing.home.exportCertifications
 
-const CHOOSE_US_POINTS = [
-  'Zero Sulphur Policy for cleaner cooking oils',
-  'Direct coconut sourcing for better freshness and traceability',
-  'No chemical solvents or artificial additives',
-  'Certified quality systems and batch-level checks',
-  'Everyday products curated for family wellness',
-  'Simple checkout and reliable delivery experience',
-]
+const CHOOSE_US_POINTS = tenantConfig.marketing.home.chooseUsPoints
 
 type CategoryCollection = {
   title: string
@@ -57,12 +45,11 @@ type CategoryCollection = {
 }
 
 export const metadata = {
-  title: `${storeConfig.brandName} - Retail Store for Natural Foods`,
-  description:
-    'Shop sulphur-free coconut oil, sesame oil, honey, and natural foods for everyday home use. Trusted quality, clean processing, and fast delivery across India.',
+  title: `${storeConfig.brandName} - ${tenantConfig.marketing.home.metaTitleSuffix}`,
+  description: tenantConfig.marketing.home.metaDescription,
 }
 
-const TRUST_ROW = ['ISO Certified', 'FSSAI Licensed', '100% Natural'] as const
+const TRUST_ROW = tenantConfig.marketing.home.trustRow
 
 function getStartingPrice(product: RawProduct): number {
   const prices = (product.product_variants ?? [])
@@ -148,12 +135,10 @@ export default async function HomePage() {
         <div className={styles.heroGlow} aria-hidden="true" />
         <div className={styles.heroInner}>
           <div className={styles.heroContent}>
-            <span className={styles.heroKicker}>Clean Natural Foods for Everyday Homes</span>
-            <h1 className={styles.heroTitle}>Zero Sulphur. Zero Compromise.</h1>
+            <span className={styles.heroKicker}>{tenantConfig.marketing.home.heroKicker}</span>
+            <h1 className={styles.heroTitle}>{tenantConfig.marketing.home.heroTitle}</h1>
             <p className={styles.heroText}>
-              Discover sulphur-free coconut oil, cold-pressed sesame oil, natural honey, and wholesome
-              pantry staples made with clean processing and strict quality checks. Crafted in Kerala,
-              made for modern kitchens and health-conscious families.
+              {tenantConfig.marketing.home.heroDescription}
             </p>
             <div className={styles.heroCtaRow}>
               <TrackedLink
@@ -202,7 +187,7 @@ export default async function HomePage() {
                         />
                       ) : (
                         <div className={styles.heroPlaceholder}>
-                          <span>{product.name}</span>
+                            <span>{product.name}</span>
                         </div>
                       )}
                       <div className={styles.heroImageOverlay}>
@@ -225,12 +210,12 @@ export default async function HomePage() {
                     />
                   ) : (
                     <div className={styles.heroPlaceholder}>
-                      <span>Sulphur-Free Coconut Oil</span>
+                      <span>{tenantConfig.marketing.home.heroPlaceholderProduct}</span>
                     </div>
                   )}
                   <div className={styles.heroImageOverlay}>
                     <span>From {storeConfig.brandName}</span>
-                    <strong>{heroProduct?.name ?? 'Sulphur-Free Coconut Oil'}</strong>
+                    <strong>{heroProduct?.name ?? tenantConfig.marketing.home.heroPlaceholderProduct}</strong>
                   </div>
                 </>
               )}
@@ -242,7 +227,7 @@ export default async function HomePage() {
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <p className={styles.sectionKicker}>Featured Products</p>
-          <h2>Clean oils and natural essentials for daily use</h2>
+          <h2>{tenantConfig.marketing.home.featuredHeading}</h2>
         </div>
         <ProductGrid products={featuredProducts} emptyText="Featured products will appear here soon." />
       </section>
@@ -254,8 +239,8 @@ export default async function HomePage() {
       >
         <div className={styles.sectionHead}>
           <p className={styles.sectionKicker}>Certifications</p>
-          <h2>Certified Quality You Can Trust</h2>
-          <p>Maintaining international food safety and quality standards.</p>
+          <h2>{tenantConfig.marketing.home.certificationsHeading}</h2>
+          <p>{tenantConfig.marketing.home.certificationsDescription}</p>
         </div>
 
         <div className={styles.certificationGroupGrid}>
@@ -268,7 +253,7 @@ export default async function HomePage() {
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <p className={styles.sectionKicker}>Why Choose Us</p>
-          <h2>Built for families who read every label</h2>
+          <h2>{tenantConfig.marketing.home.whyChooseHeading}</h2>
         </div>
 
         <div className={styles.featureGrid}>
@@ -284,7 +269,7 @@ export default async function HomePage() {
       <section className={`${styles.section} ${styles.sectionAlt}`}>
         <div className={styles.sectionHead}>
           <p className={styles.sectionKicker}>Collections</p>
-          <h2>Product Range</h2>
+          <h2>{tenantConfig.marketing.home.collectionsHeading}</h2>
         </div>
 
         <div className={styles.collectionGrid}>
@@ -308,7 +293,7 @@ export default async function HomePage() {
         <section className={styles.section}>
           <div className={styles.sectionHead}>
             <p className={styles.sectionKicker}>Best Sellers</p>
-            <h2>Most-loved natural products</h2>
+            <h2>{tenantConfig.marketing.home.bestSellersHeading}</h2>
           </div>
           <ProductGrid products={bestSellers} emptyText="Best sellers will appear here as your catalog grows." showBestSellerBadge />
         </section>
@@ -321,18 +306,16 @@ export default async function HomePage() {
       >
         <div className={styles.storyCard}>
           <p className={styles.sectionKicker}>Brand Story</p>
-          <h2>Traditional roots. Modern quality confidence.</h2>
+          <h2>{tenantConfig.marketing.home.brandStoryHeading}</h2>
           <p>
-            {storeConfig.brandName} was founded to preserve traditional food preparation with uncompromising
-            quality discipline. Every batch follows heritage-inspired methods, strict quality checks,
-            and clean processing practices designed for everyday family wellbeing.
+            {tenantConfig.marketing.home.brandStoryBody}
           </p>
         </div>
       </section>
 
       <section className={styles.finalCta}>
-        <h2>Bring home clean, trusted natural products</h2>
-        <p>Shop Millco essentials for better cooking, better nutrition, and everyday confidence.</p>
+        <h2>{tenantConfig.marketing.home.finalCtaHeading}</h2>
+        <p>{tenantConfig.marketing.home.finalCtaBody}</p>
         <TrackedLink
           href="/products"
           className={`${styles.button} ${styles.buttonPrimary}`}

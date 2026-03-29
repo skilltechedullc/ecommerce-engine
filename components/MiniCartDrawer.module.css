@@ -67,7 +67,7 @@
   border-radius: 12px;
   border: 1px solid rgba(15, 73, 53, 0.14);
   background: #fff;
-  color: #0f3d2e;
+  color: var(--tenant-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -118,7 +118,7 @@
   padding: 0 18px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   color: #fff;
   font-weight: 700;
   cursor: pointer;
@@ -379,7 +379,7 @@
   min-height: 50px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   color: #fff;
   font-weight: 700;
   font-size: 15px;

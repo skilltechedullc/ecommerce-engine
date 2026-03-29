@@ -259,7 +259,7 @@
 }
 
 .primaryButton {
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   color: #ffffff;
   box-shadow: 0 18px 34px rgba(15, 61, 46, 0.2);
 }

@@ -8,6 +8,7 @@ import { getCartSnapshot, clearCart, removeFromCart, subscribeToCart, emitCartUp
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { buildTenantWhatsAppUrl, isValidTenantPhone, tenantConfig } from '@/lib/tenant.config'
 import styles from './checkout.module.css'
 
 const EMPTY_CART: CartItem[] = []
@@ -37,17 +38,12 @@ function validateField(field: keyof FieldErrors, value: string): string {
   switch (field) {
     case 'name': return value.trim() ? '' : 'Full name is required'
     case 'email': return /^\S+@\S+\.\S+$/.test(value.trim()) ? '' : 'Enter a valid email address'
-    case 'phone': return /^[6-9]\d{9}$/.test(value) ? '' : 'Enter a valid 10-digit Indian mobile number'
+    case 'phone': return isValidTenantPhone(value) ? '' : tenantConfig.region.phone.validationMessage
     case 'address': return value.trim() ? '' : 'Delivery address is required'
   }
 }
 
-const TRUST_POINTS = [
-  'Secure payment via Razorpay',
-  'SSL-protected checkout flow',
-  'Fast dispatch for fresh staples',
-  'Pan-India delivery coverage',
-] as const
+const TRUST_POINTS = tenantConfig.marketing.checkout.trustPoints
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -156,7 +152,7 @@ export default function CheckoutPage() {
           description: 'Order Payment',
           order_id: orderData.order_id,
           prefill: { name, email, contact: phone },
-          theme: { color: '#0F3D2E' },
+          theme: { color: tenantConfig.branding.colors.primary },
           modal: {
             ondismiss: () => {
               setStatus('idle')
@@ -226,11 +222,10 @@ export default function CheckoutPage() {
     : status === 'paying' ? 'Processing…'
     : `Pay Securely ${moneyWithSymbol(total)}`
 
-  const whatsAppNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
   const whatsAppMessage = cart.length > 0
-    ? encodeURIComponent(`Hi, I'd like to place an order:\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(total)}`)
+    ? `${tenantConfig.marketing.whatsapp.checkoutIntroMessage}\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(total)}`
     : ''
-  const whatsAppUrl = whatsAppNumber ? `https://wa.me/${whatsAppNumber}?text=${whatsAppMessage}` : ''
+  const whatsAppUrl = whatsAppMessage ? buildTenantWhatsAppUrl(whatsAppMessage) : ''
 
   return (
     <div className={styles.page}>
@@ -390,14 +385,14 @@ export default function CheckoutPage() {
         <section className={styles.hero}>
           <div className={styles.heroCard}>
             <span className={styles.kicker}>Secure Checkout</span>
-            <h1>Finish your order with a clean, trusted payment flow.</h1>
+            <h1>{tenantConfig.marketing.checkout.heroTitle}</h1>
             <p>
-              Share your delivery details, review the basket, and complete payment securely.
+              {tenantConfig.marketing.checkout.heroDescription}
             </p>
             <div className={styles.checkpoints}>
-              <span className={styles.checkpoint}>Verified sourcing</span>
-              <span className={styles.checkpoint}>Protected payment</span>
-              <span className={styles.checkpoint}>Reliable dispatch</span>
+              {tenantConfig.marketing.checkout.heroCheckpoints.map((checkpoint) => (
+                <span key={checkpoint} className={styles.checkpoint}>{checkpoint}</span>
+              ))}
             </div>
           </div>
 
@@ -406,12 +401,12 @@ export default function CheckoutPage() {
               <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
               <div className={styles.logoMeta}>
                 <span>{storeConfig.brandName}</span>
-                <strong>Natural foods with a more deliberate standard.</strong>
+                <strong>{tenantConfig.marketing.header.mobileSubtitle}</strong>
               </div>
             </div>
-            <h2>Why this feels dependable</h2>
+            <h2>{tenantConfig.marketing.checkout.brandCardTitle}</h2>
             <p>
-              Your details are captured only for fulfilment, communication, and secure payment confirmation.
+              {tenantConfig.marketing.checkout.brandCardBody}
             </p>
           </aside>
         </section>

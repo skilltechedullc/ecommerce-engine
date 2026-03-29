@@ -177,7 +177,7 @@
   padding: 0 24px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0f3d2e, #137650);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   color: #ffffff;
   cursor: pointer;
   font-size: 15px;

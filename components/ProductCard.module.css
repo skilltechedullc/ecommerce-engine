@@ -71,7 +71,7 @@
   top: 14px;
   right: 14px;
   color: #ffffff;
-  background: linear-gradient(135deg, #1f7a54, #0f3d2e);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-end), var(--tenant-primary));
 }
 
 .lowStockBadge {
@@ -132,7 +132,7 @@
 .price {
   font-size: 22px;
   font-weight: 700;
-  color: #1b4332;
+  color: var(--tenant-primary);
   font-family: var(--font-playfair), Georgia, serif;
 }
 
@@ -152,14 +152,14 @@
   padding: 8px 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   white-space: nowrap;
   transition: transform 0.22s ease, background-color 0.22s ease, border-color 0.22s ease;
 }
 
 .card:hover .cta {
   transform: translateX(2px);
-  background: linear-gradient(135deg, #0c3226, #12714f);
+  background: linear-gradient(135deg, var(--tenant-primary-dark), var(--tenant-primary-gradient-end));
 }
 
 .quickActions {

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import { storeConfig } from '@/lib/config'
 import { trackEvent } from '@/lib/analytics'
+import { buildTenantWhatsAppUrl, tenantConfig } from '@/lib/tenant.config'
 
-const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
-const WA_MESSAGE = `Hi ${storeConfig.brandName}! I have a question about your products.`
-const WA_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_MESSAGE)}`
+const WA_NUMBER = tenantConfig.contact.whatsappNumber
+const WA_MESSAGE = `Hi ${storeConfig.brandName}! ${tenantConfig.marketing.whatsapp.productQuestionMessage}`
+const WA_URL = buildTenantWhatsAppUrl(WA_MESSAGE)
 
 export default function WhatsAppButton() {
   const [hovered, setHovered] = useState(false)
@@ -42,7 +43,7 @@ export default function WhatsAppButton() {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        backgroundColor: '#25D366',
+        backgroundColor: 'var(--tenant-whatsapp)',
         color: '#FFFFFF',
         borderRadius: '999px',
         padding: showLabel ? '12px 16px 12px 14px' : '13px',
@@ -78,7 +79,7 @@ export default function WhatsAppButton() {
           letterSpacing: '0.2px',
         }}
       >
-        Order via WhatsApp
+        {tenantConfig.marketing.whatsapp.floatingLabel}
       </span>
     </a>
   )

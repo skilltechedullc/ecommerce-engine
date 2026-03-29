@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { addToCart, emitCartUpdated } from '@/lib/cart'
 import { moneyWithSymbol } from '@/lib/money'
+import { tenantConfig } from '@/lib/tenant.config'
 
 type Variant = {
   id: string
@@ -79,7 +80,7 @@ export default function AddToCartButton({
             fontWeight: '700',
             letterSpacing: '2px',
             textTransform: 'uppercase',
-            color: '#C9A84C',
+            color: 'var(--tenant-accent)',
             margin: '0 0 16px',
           }}
         >
@@ -108,7 +109,7 @@ export default function AddToCartButton({
         style={{
           fontSize: '30px',
           fontWeight: '700',
-          color: '#1B4332',
+          color: 'var(--tenant-primary)',
           margin: '0 0 24px',
           fontFamily: 'var(--font-playfair), Georgia, serif',
         }}
@@ -156,9 +157,9 @@ export default function AddToCartButton({
                 style={{
                   padding: '8px 20px',
                   borderRadius: '8px',
-                  border: v.id === selectedId ? '2px solid #1B4332' : '1.5px solid #DDD',
+                  border: v.id === selectedId ? '2px solid var(--tenant-primary)' : '1.5px solid #DDD',
                   backgroundColor: v.id === selectedId ? '#EDF5EF' : '#FFFFFF',
-                  color: v.id === selectedId ? '#1B4332' : '#444',
+                  color: v.id === selectedId ? 'var(--tenant-primary)' : '#444',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: v.stock === 0 ? 'not-allowed' : 'pointer',
@@ -235,7 +236,7 @@ export default function AddToCartButton({
             ? '#A0AFA8'
             : added
             ? '#2A5C45'
-            : '#1B4332',
+            : 'var(--tenant-primary)',
           color: '#FFFFFF',
           border: 'none',
           borderRadius: '12px',
@@ -278,12 +279,7 @@ export default function AddToCartButton({
           gap: '12px',
         }}
       >
-        {[
-          'FSSAI Certified Quality',
-          'Natural & Sulphur-Free',
-          'Export Grade Standard',
-          'Ships in 2–3 Business Days',
-        ].map((text) => (
+        {tenantConfig.marketing.addToCart.trustBadges.map((text) => (
           <div
             key={text}
             style={{
@@ -296,7 +292,7 @@ export default function AddToCartButton({
           >
             <svg
               width="15" height="15" viewBox="0 0 24 24"
-              fill="none" stroke="#1B4332" strokeWidth="2.5" strokeLinecap="round"
+              fill="none" stroke="var(--tenant-primary)" strokeWidth="2.5" strokeLinecap="round"
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>

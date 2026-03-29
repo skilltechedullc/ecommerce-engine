@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import { storeConfig } from '@/lib/config'
 import { mergeImageSources, normalizeImageValue } from '@/lib/catalogMedia'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
+import { tenantConfig } from '@/lib/tenant.config'
 import ProductDetailExperience from './ProductDetailExperience'
 import styles from './product-detail.module.css'
 
@@ -25,7 +26,7 @@ export async function generateMetadata({
     : `Product | ${storeConfig.brandName}`
   const description = product?.name
     ? `Premium quality ${product.name} from ${storeConfig.brandName}.`
-    : `Premium natural food product from ${storeConfig.brandName}.`
+    : `Premium ${tenantConfig.marketing.productDetail.productDescriptor} from ${storeConfig.brandName}.`
   return {
     title,
     description,

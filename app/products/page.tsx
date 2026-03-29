@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import ProductCard from '@/components/ProductCard'
 import Link from 'next/link'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
+import { tenantConfig } from '@/lib/tenant.config'
 import ProductsCopyVariantTracker from './ProductsCopyVariantTracker'
 import styles from './products.module.css'
 
@@ -20,7 +21,7 @@ const COPY_VARIANTS: Record<CopyVariantKey, { title: string; description: string
 
 export const metadata = {
   title: 'Shop — Products',
-  description: 'Browse our certified natural collection from Kerala.',
+  description: tenantConfig.marketing.products.metaDescription,
 }
 
 export default async function ProductsPage({
@@ -84,7 +85,7 @@ export default async function ProductsPage({
       <div className={styles.wrap}>
         <section className={styles.hero}>
           <div className={styles.heroCard}>
-            <span className={styles.kicker}>Millco Collection</span>
+            <span className={styles.kicker}>{tenantConfig.marketing.products.heroKicker}</span>
             <h1>{heroCopy.title}</h1>
             <p>{heroCopy.description}</p>
             <div className={styles.stats}>
@@ -162,7 +163,7 @@ export default async function ProductsPage({
           <section id="popular-picks" className={styles.featuredSection}>
             <div className={styles.featuredHeader}>
               <div>
-                <h2>Fast-moving favourites from the Millco collection.</h2>
+                <h2>{tenantConfig.marketing.products.popularHeading}</h2>
               </div>
               <Link href="#product-grid" className={styles.featuredLink}>Browse all products</Link>
             </div>

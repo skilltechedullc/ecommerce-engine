@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
+import { tenantConfig } from '@/lib/tenant.config'
 
 
 export default async function OrdersPage({
@@ -102,7 +103,7 @@ export default async function OrdersPage({
                     <td style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
                     <td><StatusBadge status={order.status ?? 'Pending'} /></td>
                     <td><span className="admin-orderCode">{order.razorpay_payment_id ? `${order.razorpay_payment_id.slice(0, 16)}…` : '—'}</span></td>
-                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td>
                       <Link href={`/admin/orders/${order.id}`} className="admin-button admin-button--secondary admin-button--small">
                         View

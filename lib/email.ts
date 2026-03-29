@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { storeConfig } from '@/lib/config'
+import { tenantConfig } from '@/lib/tenant.config'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const fromAddress = process.env.EMAIL_FROM_ADDRESS ?? 'orders@example.com'
@@ -39,10 +40,10 @@ function itemsTable(items: EmailOrderItem[]): string {
           ${item.quantity}
         </td>
         <td style="padding:10px 12px;border-bottom:1px solid #F3F4F6;text-align:right;color:#6B7280;font-size:14px;">
-          ${storeConfig.currencySymbol}${item.price.toLocaleString('en-IN')}
+          ${storeConfig.currencySymbol}${item.price.toLocaleString(tenantConfig.region.numberLocale)}
         </td>
         <td style="padding:10px 12px;border-bottom:1px solid #F3F4F6;text-align:right;font-weight:600;color:#111827;font-size:14px;">
-          ${storeConfig.currencySymbol}${(item.price * item.quantity).toLocaleString('en-IN')}
+          ${storeConfig.currencySymbol}${(item.price * item.quantity).toLocaleString(tenantConfig.region.numberLocale)}
         </td>
       </tr>`
     )
@@ -63,7 +64,7 @@ function itemsTable(items: EmailOrderItem[]): string {
         <tr style="background:#F9FAFB;">
           <td colspan="3" style="padding:12px;text-align:right;font-size:14px;font-weight:600;color:#374151;">Order Total</td>
           <td style="padding:12px;text-align:right;font-size:18px;font-weight:700;color:#1B4332;">
-            ${storeConfig.currencySymbol}${items.reduce((s, i) => s + i.price * i.quantity, 0).toLocaleString('en-IN')}
+            ${storeConfig.currencySymbol}${items.reduce((s, i) => s + i.price * i.quantity, 0).toLocaleString(tenantConfig.region.numberLocale)}
           </td>
         </tr>
       </tfoot>
@@ -83,7 +84,7 @@ function baseLayout(body: string): string {
         <tr>
           <td style="background:#1B4332;border-radius:10px 10px 0 0;padding:28px 36px;">
             <p style="margin:0;font-size:22px;font-weight:700;color:#FFFFFF;letter-spacing:-0.3px;">${storeConfig.brandName}</p>
-            <p style="margin:4px 0 0;font-size:12px;color:#A7C4B5;letter-spacing:1.5px;text-transform:uppercase;">Certified Natural · Kerala Origin</p>
+            <p style="margin:4px 0 0;font-size:12px;color:#A7C4B5;letter-spacing:1.5px;text-transform:uppercase;">${tenantConfig.marketing.email.headerEyebrow}</p>
           </td>
         </tr>
 
@@ -98,7 +99,7 @@ function baseLayout(body: string): string {
         <tr>
           <td style="background:#F9FAFB;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 10px 10px;padding:20px 36px;text-align:center;">
             <p style="margin:0;font-size:12px;color:#9CA3AF;">${storeConfig.brandName} — ${storeConfig.siteUrl}</p>
-            <p style="margin:4px 0 0;font-size:12px;color:#9CA3AF;">For support, reply to this email.</p>
+            <p style="margin:4px 0 0;font-size:12px;color:#9CA3AF;">${tenantConfig.marketing.email.supportReplyText}</p>
           </td>
         </tr>
 
@@ -143,7 +144,7 @@ export async function sendOrderConfirmationEmail(
     <p style="margin-top:28px;font-size:14px;color:#6B7280;line-height:1.6;">
       You'll receive another email once your order ships. If you have any questions, just reply to this email.
     </p>
-    <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— Team ${storeConfig.brandName}</p>`
+    <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— ${tenantConfig.marketing.email.teamSignatureLabel} ${storeConfig.brandName}</p>`
 
   await resend.emails.send({
     from: fromDisplay,
@@ -209,7 +210,7 @@ export async function sendAdminNewOrderEmail(
   await resend.emails.send({
     from: fromDisplay,
     to: adminEmail,
-    subject: `New Order #${shortId} — ${storeConfig.currencySymbol}${order.total_amount.toLocaleString('en-IN')}`,
+    subject: `New Order #${shortId} — ${storeConfig.currencySymbol}${order.total_amount.toLocaleString(tenantConfig.region.numberLocale)}`,
     html: baseLayout(body),
   })
 }
@@ -269,7 +270,7 @@ export async function sendOrderStatusUpdateEmail(
     <p style="margin-top:24px;font-size:14px;color:#6B7280;line-height:1.6;">
       Need help with your order? Reply to this email and our team will assist you.
     </p>
-    <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— Team ${storeConfig.brandName}</p>`
+    <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— ${tenantConfig.marketing.email.teamSignatureLabel} ${storeConfig.brandName}</p>`
 
   await resend.emails.send({
     from: fromDisplay,

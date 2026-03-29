@@ -362,7 +362,7 @@
 .primaryButton {
   width: 100%;
   margin-top: 24px;
-  background: linear-gradient(135deg, #0f3d2e, #15875f);
+  background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
   color: #fff;
   border: none;
   box-shadow: 0 18px 34px rgba(15, 61, 46, 0.22);
@@ -648,7 +648,7 @@
     border-radius: 12px;
     padding: 0 14px;
     text-decoration: none;
-    background: linear-gradient(135deg, #0f3d2e, #15875f);
+    background: linear-gradient(135deg, var(--tenant-primary-gradient-start), var(--tenant-primary-gradient-end));
     color: #ffffff;
     font-size: 12px;
     letter-spacing: 0.06em;

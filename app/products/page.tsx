@@ -77,7 +77,6 @@ export default async function ProductsPage({
   const totalProducts = products?.length ?? 0
   const activeFilterCount = Number(Boolean(activeCategory)) + Number(activeSort !== 'featured')
   const popularProducts = (products ?? []).filter((product) => bestSellerProductIds.has(product.id)).slice(0, 4)
-  const popularPicksHref = popularProducts.length > 0 ? '#popular-picks' : '#product-grid'
 
   return (
     <div className={styles.page}>
@@ -106,63 +105,63 @@ export default async function ProductsPage({
                 <span>Chemical-free</span>
               </div>
             </div>
-            <Link href={popularPicksHref} className={styles.heroPopularLink}>Popular Picks</Link>
           </div>
         </section>
 
-        <div className={styles.filters}>
-          <FilterPill href={buildProductsHref('', activeSort)} label="All" active={!activeCategory} />
-          {categories.map((cat) => (
-            <FilterPill
-              key={cat}
-              href={buildProductsHref(cat, activeSort)}
-              label={`${cat} (${categoryCounts.get(cat) ?? 0})`}
-              active={activeCategory === cat}
-            />
-          ))}
-        </div>
-
-        <div className={styles.sortRow}>
-          <span className={styles.sortLabel}>Sort by</span>
-          <div className={styles.sortOptions}>
-            <FilterPill
-              href={buildProductsHref(activeCategory, 'featured')}
-              label="Featured"
-              active={activeSort === 'featured'}
-              className={styles.sortPill}
-            />
-            <FilterPill
-              href={buildProductsHref(activeCategory, 'name-asc')}
-              label="Name"
-              active={activeSort === 'name-asc'}
-              className={styles.sortPill}
-            />
-            <FilterPill
-              href={buildProductsHref(activeCategory, 'price-asc')}
-              label="Price ↑"
-              active={activeSort === 'price-asc'}
-              className={styles.sortPill}
-            />
-            <FilterPill
-              href={buildProductsHref(activeCategory, 'price-desc')}
-              label="Price ↓"
-              active={activeSort === 'price-desc'}
-              className={styles.sortPill}
-            />
+        <div className={styles.controlsBand}>
+          <div className={styles.filters}>
+            <FilterPill href={buildProductsHref('', activeSort)} label="All" active={!activeCategory} />
+            {categories.map((cat) => (
+              <FilterPill
+                key={cat}
+                href={buildProductsHref(cat, activeSort)}
+                label={`${cat} (${categoryCounts.get(cat) ?? 0})`}
+                active={activeCategory === cat}
+              />
+            ))}
           </div>
-        </div>
 
-        {activeFilterCount > 0 ? (
-          <div className={styles.activeStateRow}>
-            <Link href="/products" className={styles.resetLink}>Clear all filters</Link>
+          <div className={styles.sortRow}>
+            <span className={styles.sortLabel}>Sort by</span>
+            <div className={styles.sortOptions}>
+              <FilterPill
+                href={buildProductsHref(activeCategory, 'featured')}
+                label="Featured"
+                active={activeSort === 'featured'}
+                className={styles.sortPill}
+              />
+              <FilterPill
+                href={buildProductsHref(activeCategory, 'name-asc')}
+                label="Name"
+                active={activeSort === 'name-asc'}
+                className={styles.sortPill}
+              />
+              <FilterPill
+                href={buildProductsHref(activeCategory, 'price-asc')}
+                label="Price ↑"
+                active={activeSort === 'price-asc'}
+                className={styles.sortPill}
+              />
+              <FilterPill
+                href={buildProductsHref(activeCategory, 'price-desc')}
+                label="Price ↓"
+                active={activeSort === 'price-desc'}
+                className={styles.sortPill}
+              />
+            </div>
           </div>
-        ) : null}
+
+          {activeFilterCount > 0 ? (
+            <div className={styles.activeStateRow}>
+              <Link href="/products" className={styles.resetLink}>Clear all filters</Link>
+            </div>
+          ) : null}
+        </div>
 
         {popularProducts.length > 0 ? (
           <section id="popular-picks" className={styles.featuredSection}>
             <div className={styles.featuredHeader}>
               <div>
-                <p className={styles.featuredEyebrow}>Popular Picks</p>
                 <h2>Fast-moving favourites from the Millco collection.</h2>
               </div>
               <Link href="#product-grid" className={styles.featuredLink}>Browse all products</Link>

@@ -16,7 +16,7 @@
 }
 
 .heroCard,
-.filters,
+.controlsBand,
 .emptyState {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(15, 73, 53, 0.10);
@@ -89,63 +89,63 @@
   color: #688474;
 }
 
-.heroPopularLink {
-  display: inline-flex;
-  margin-top: 10px;
-  color: #0f5f43;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.heroPopularLink:hover {
-  text-decoration: underline;
+.controlsBand {
+  padding: 12px;
+  margin-bottom: 14px;
 }
 
 .filters {
-  padding: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
 }
 
 .sortRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-top: 10px;
   flex-wrap: wrap;
 }
 
 .sortLabel {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #6a8375;
+  color: #7b9487;
 }
 
 .sortOptions {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(15, 73, 53, 0.1);
-  border-radius: 16px;
-  padding: 8px;
+  background: rgba(250, 253, 251, 0.9);
+  border: 1px solid rgba(15, 73, 53, 0.08);
+  border-radius: 14px;
+  padding: 6px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .sortPill {
-  min-height: 42px;
-  padding: 0 14px;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-color: rgba(15, 73, 53, 0.1);
+  color: #5a7567;
+  background: #f8fcf9;
+}
+
+.sortPill.filterPillActive {
+  background: #e7f3ec;
+  color: #14523b;
+  border-color: rgba(20, 82, 59, 0.2);
 }
 
 .activeStateRow {
-  margin: -4px 0 10px;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -161,7 +161,7 @@
 }
 
 .featuredSection {
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   scroll-margin-top: 110px;
 }
 
@@ -174,18 +174,9 @@
   flex-wrap: wrap;
 }
 
-.featuredEyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #0f6b4a;
-  margin-bottom: 6px;
-}
-
 .featuredHeader h2 {
   font-family: var(--font-playfair), Georgia, serif;
-  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  font-size: clamp(1.6rem, 2.8vw, 2.1rem);
   line-height: 1.1;
   letter-spacing: -0.03em;
   color: #113525;
@@ -201,7 +192,7 @@
 .filterPill {
   display: inline-flex;
   align-items: center;
-  min-height: 48px;
+  min-height: 42px;
   padding: 0 18px;
   border-radius: 999px;
   border: 1px solid #d8e8dd;
@@ -232,7 +223,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 18px;
 }
 
 .resultHint {
@@ -272,7 +263,7 @@
   }
 
   .heroCard,
-  .filters,
+  .controlsBand,
   .emptyState {
     border-radius: 22px;
   }
@@ -289,12 +280,16 @@
     width: 100%;
   }
 
+  .sortRow {
+    margin-top: 8px;
+  }
+
   .stat {
     min-width: calc(50% - 4px);
   }
 
   .filterPill {
-    min-height: 44px;
+    min-height: 40px;
     padding: 0 14px;
     font-size: 12px;
   }

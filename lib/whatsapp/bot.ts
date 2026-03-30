@@ -59,16 +59,24 @@ function buildWelcomeMenu(): string {
   ].join('\n')
 }
 
+function moneyLabel(amount: number): string {
+  try {
+    return formatMoney(amount)
+  } catch {
+    return `INR ${Math.round(amount).toLocaleString('en-IN')}`
+  }
+}
+
 function buildProductList(products: ProductChoice[]): string {
   const lines = products.map((product, index) => {
-    return `${index + 1}. ${product.name} (from ${formatMoney(product.startingPrice)})`
+    return `${index + 1}. ${product.name} (from ${moneyLabel(product.startingPrice)})`
   })
 
   return ['Available products:', ...lines, '', 'Reply with a number to select a product.'].join('\n')
 }
 
 function buildVariantList(productName: string, variants: VariantChoice[]): string {
-  const lines = variants.map((variant, index) => `${index + 1}. ${variant.name} - ${formatMoney(variant.price)}`)
+  const lines = variants.map((variant, index) => `${index + 1}. ${variant.name} - ${moneyLabel(variant.price)}`)
 
   return [
     `Variants for ${productName}:`,
@@ -89,14 +97,14 @@ function buildCartMessage(cart: CartItem[]): string {
 
   const lines = cart.map((item, index) => {
     const lineTotal = item.price * item.quantity
-    return `${index + 1}. ${item.productName} (${item.variantName}) x ${item.quantity} = ${formatMoney(lineTotal)}`
+    return `${index + 1}. ${item.productName} (${item.variantName}) x ${item.quantity} = ${moneyLabel(lineTotal)}`
   })
 
   return [
     'Your cart:',
     ...lines,
     '',
-    `Total: ${formatMoney(cartTotal(cart))}`,
+    `Total: ${moneyLabel(cartTotal(cart))}`,
     '',
     '1. Checkout',
     '2. Clear cart',
@@ -226,14 +234,14 @@ async function startCheckout(phone: string, cart: CartItem[]): Promise<void> {
 function buildOrderSummary(cart: CartItem[], customerName: string, customerAddress: string): string {
   const lines = cart.map((item, index) => {
     const lineTotal = item.price * item.quantity
-    return `${index + 1}. ${item.quantity} x ${item.productName} (${item.variantName}) - ${formatMoney(lineTotal)}`
+    return `${index + 1}. ${item.quantity} x ${item.productName} (${item.variantName}) - ${moneyLabel(lineTotal)}`
   })
 
   return [
     'Order summary:',
     ...lines,
     '',
-    `Total: ${formatMoney(cartTotal(cart))}`,
+    `Total: ${moneyLabel(cartTotal(cart))}`,
     `Name: ${customerName}`,
     `Address: ${customerAddress}`,
     '',

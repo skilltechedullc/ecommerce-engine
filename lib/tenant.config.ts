@@ -221,7 +221,7 @@ export type TenantConfig = {
 }
 
 export const tenantConfig: TenantConfig = {
-  whatsappBotWelcome: process.env.NEXT_PUBLIC_BRAND_NAME + ' WhatsApp Store',
+  whatsappBotWelcome: `${brandName} WhatsApp Store`,
   branding: {
     name: brandName,
     shortName: brandShortName,

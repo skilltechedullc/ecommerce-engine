@@ -324,6 +324,70 @@ async function sendWhatsAppViaGupshup(input: {
   }
 }
 
+async function sendWhatsAppViaMeta(input: {
+  toPhone: string
+  templateId: string
+  variables: Record<string, string>
+}): Promise<ProviderSendResult> {
+  const accessToken = optionalEnv('WHATSAPP_ACCESS_TOKEN')
+  const phoneNumberId = optionalEnv('WHATSAPP_PHONE_NUMBER_ID')
+  const languageCode = optionalEnv('WHATSAPP_META_TEMPLATE_LANGUAGE') ?? 'en'
+
+  if (!accessToken || !phoneNumberId) {
+    throw new Error('Meta WhatsApp config missing (WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID)')
+  }
+
+  const to = input.toPhone.replace('+', '')
+  const parameterOrder = [
+    input.variables.customer_name ?? '',
+    input.variables.order_id ?? '',
+    input.variables.total_amount ?? '',
+    input.variables.order_status ?? '',
+  ]
+
+  const response = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to,
+      type: 'template',
+      template: {
+        name: input.templateId,
+        language: {
+          code: languageCode,
+        },
+        components: [
+          {
+            type: 'body',
+            parameters: parameterOrder.map((value) => ({
+              type: 'text',
+              text: String(value),
+            })),
+          },
+        ],
+      },
+    }),
+  })
+
+  const json = await response.json().catch(() => ({})) as {
+    messages?: Array<{ id?: string }>
+    error?: { message?: string }
+  }
+
+  if (!response.ok) {
+    throw new Error(`Meta send failed (${response.status}): ${json.error?.message ?? 'Unknown error'}`)
+  }
+
+  return {
+    provider: 'meta',
+    providerMessageId: json.messages?.[0]?.id,
+  }
+}
+
 async function sendWhatsAppTemplate(input: {
   event: NotificationEvent
   order: NotificationOrder
@@ -348,6 +412,8 @@ async function sendWhatsAppTemplate(input: {
       return sendWhatsAppViaWati({ toPhone, templateId, variables: vars })
     case 'gupshup':
       return sendWhatsAppViaGupshup({ toPhone, templateId, variables: vars })
+    case 'meta':
+      return sendWhatsAppViaMeta({ toPhone, templateId, variables: vars })
     default:
       throw new Error(`Unsupported WHATSAPP_PROVIDER: ${provider}`)
   }

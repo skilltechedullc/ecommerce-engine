@@ -12,7 +12,7 @@ type ProductRow = {
 type VariantRow = {
   id: string
   product_id: string
-  name: string | null
+  weight: string | null
   price: number
 }
 
@@ -136,7 +136,7 @@ async function fetchActiveProducts(): Promise<ProductChoice[]> {
   const productIds = products.map((product) => product.id)
   const { data: variants, error: variantsError } = await supabaseAdmin
     .from('product_variants')
-    .select('id, product_id, name, price')
+    .select('id, product_id, weight, price')
     .in('product_id', productIds)
     .gt('stock', 0)
     .returns<VariantRow[]>()
@@ -165,7 +165,7 @@ async function fetchActiveProducts(): Promise<ProductChoice[]> {
 async function fetchVariantsForProduct(productId: string): Promise<VariantChoice[]> {
   const { data, error } = await supabaseAdmin
     .from('product_variants')
-    .select('id, name, price')
+    .select('id, weight, price')
     .eq('product_id', productId)
     .gt('stock', 0)
     .order('price', { ascending: true })
@@ -174,7 +174,7 @@ async function fetchVariantsForProduct(productId: string): Promise<VariantChoice
 
   const variants = (data ?? []).map((variant) => ({
     id: String(variant.id),
-    name: variant.name && String(variant.name).trim() ? String(variant.name) : 'Default',
+    name: variant.weight && String(variant.weight).trim() ? String(variant.weight) : 'Default',
     price: Number(variant.price),
   }))
 
@@ -427,15 +427,15 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
 
       const { data: variantData, error: variantError } = await supabaseAdmin
         .from('product_variants')
-        .select('id, name, price')
+        .select('id, weight, price')
         .eq('id', quantityContext.variantId)
-        .maybeSingle<{ id: string; name: string | null; price: number }>()
+        .maybeSingle<{ id: string; weight: string | null; price: number }>()
 
       if (variantError || !variantData) {
         throw variantError ?? new Error('Variant not found')
       }
 
-      const variantName = variantData.name && variantData.name.trim() ? variantData.name : 'Default'
+      const variantName = variantData.weight && variantData.weight.trim() ? variantData.weight : 'Default'
       const price = Number(variantData.price)
       const existingIndex = session.cart.findIndex((item) => item.variantId === variantData.id)
       const nextCart = [...session.cart]

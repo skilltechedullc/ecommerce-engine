@@ -249,26 +249,28 @@ function buildOrderSummary(cart: CartItem[], customerName: string, customerAddre
   ].join('\n')
 }
 
-let hasSourceColumnCache: boolean | null = null
+const ordersColumnCache = new Map<string, boolean>()
 
-async function hasOrdersSourceColumn(): Promise<boolean> {
-  if (hasSourceColumnCache !== null) return hasSourceColumnCache
+async function hasOrdersColumn(column: string): Promise<boolean> {
+  const cached = ordersColumnCache.get(column)
+  if (cached !== undefined) return cached
 
-  const { error } = await supabaseAdmin.from('orders').select('source').limit(1)
+  const { error } = await supabaseAdmin.from('orders').select(column).limit(1)
   if (error) {
     const message = error.message.toLowerCase()
-    if (message.includes('column') && message.includes('source')) {
-      hasSourceColumnCache = false
+    if (message.includes('column') && message.includes(column.toLowerCase())) {
+      ordersColumnCache.set(column, false)
       return false
     }
   }
 
-  hasSourceColumnCache = true
+  ordersColumnCache.set(column, true)
   return true
 }
 
 async function createWhatsappOrder(phone: string, cart: CartItem[], customerName: string, customerAddress: string): Promise<string> {
   const totalAmount = cartTotal(cart)
+  const nonce = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
   const basePayload: Record<string, unknown> = {
     customer_name: customerName,
@@ -276,20 +278,34 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     customer_email: '',
     customer_address: customerAddress,
     total_amount: totalAmount,
-    status: 'pending',
-    payment_method: 'whatsapp_cod',
-    items: cart.map((item) => ({
+    status: 'Pending',
+  }
+
+  if (await hasOrdersColumn('payment_method')) {
+    basePayload.payment_method = 'whatsapp_cod'
+  }
+
+  if (await hasOrdersColumn('items')) {
+    basePayload.items = cart.map((item) => ({
       product_id: item.productId,
       variant_id: item.variantId,
       product_name: item.productName,
       variant_name: item.variantName,
       price: item.price,
       quantity: item.quantity,
-    })),
+    }))
   }
 
-  if (await hasOrdersSourceColumn()) {
+  if (await hasOrdersColumn('source')) {
     basePayload.source = 'whatsapp'
+  }
+
+  if (await hasOrdersColumn('razorpay_order_id')) {
+    basePayload.razorpay_order_id = `wa_order_${nonce}`
+  }
+
+  if (await hasOrdersColumn('razorpay_payment_id')) {
+    basePayload.razorpay_payment_id = `wa_pending_${nonce}`
   }
 
   const { data, error } = await supabaseAdmin

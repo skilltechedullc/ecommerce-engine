@@ -1,0 +1,137 @@
+.page {
+  width: min(920px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 56px 0 88px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  border-radius: 32px;
+  padding: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(200, 169, 81, 0.18), transparent 28%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(247, 245, 240, 0.98));
+  box-shadow: 0 28px 70px rgba(15, 61, 46, 0.08);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--tenant-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  line-height: 1.06;
+  color: var(--tenant-primary-dark);
+}
+
+.intro {
+  max-width: 760px;
+  margin-top: 16px;
+  color: rgba(30, 30, 30, 0.82);
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.metaChip {
+  border: 1px solid rgba(15, 61, 46, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 14px;
+  color: rgba(30, 30, 30, 0.74);
+  font-size: 0.95rem;
+}
+
+.sections {
+  display: grid;
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.section {
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 24px;
+  box-shadow: 0 18px 50px rgba(15, 61, 46, 0.05);
+}
+
+.sectionTitle {
+  margin-bottom: 12px;
+  color: var(--tenant-primary-dark);
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.text,
+.list {
+  color: rgba(30, 30, 30, 0.8);
+  font-size: 0.99rem;
+  line-height: 1.75;
+}
+
+.list {
+  padding-left: 20px;
+}
+
+.list li + li {
+  margin-top: 10px;
+}
+
+.contactBox {
+  margin-top: 30px;
+  border-radius: 26px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--tenant-primary-dark), var(--tenant-primary));
+  color: #f7fbf9;
+}
+
+.contactTitle {
+  margin-bottom: 10px;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.contactText {
+  color: rgba(247, 251, 249, 0.86);
+  line-height: 1.7;
+}
+
+.contactText a {
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(100% - 20px, 920px);
+    padding: 28px 0 56px;
+  }
+
+  .hero,
+  .section,
+  .contactBox {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .meta {
+    flex-direction: column;
+  }
+}

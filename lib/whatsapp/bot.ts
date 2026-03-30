@@ -1,6 +1,9 @@
+import Razorpay from 'razorpay'
+import { storeConfig } from '@/lib/config'
 import { formatMoney } from '@/lib/money'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tenantConfig } from '@/lib/tenant.config'
+import { env } from '@/lib/server/env'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/meta'
 import { clearSession, getSession, updateSession, type CartItem } from '@/lib/whatsapp/session'
 
@@ -32,6 +35,10 @@ const SELECTING_VARIANT_PREFIX = 'selecting_variant:'
 const SELECTING_QUANTITY_PREFIX = 'selecting_quantity:'
 
 const supabaseAdmin = getSupabaseAdmin()
+const razorpay = new Razorpay({
+  key_id: env('RAZORPAY_KEY_ID'),
+  key_secret: env('RAZORPAY_KEY_SECRET'),
+})
 
 function normalizeInput(text: string): string {
   return text.trim()
@@ -268,7 +275,7 @@ async function hasOrdersColumn(column: string): Promise<boolean> {
   return true
 }
 
-async function createWhatsappOrder(phone: string, cart: CartItem[], customerName: string, customerAddress: string): Promise<string> {
+async function createWhatsappOrder(phone: string, cart: CartItem[], customerName: string, customerAddress: string): Promise<{ displayOrderId: string; paymentUrl: string }> {
   const totalAmount = cartTotal(cart)
   const nonce = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
@@ -279,6 +286,8 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     customer_address: customerAddress,
     total_amount: totalAmount,
     status: 'Pending',
+    razorpay_order_id: `wa_pending_order_${nonce}`,
+    razorpay_payment_id: `wa_pending_payment_${nonce}`,
   }
 
   if (await hasOrdersColumn('payment_method')) {
@@ -300,12 +309,12 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     basePayload.source = 'whatsapp'
   }
 
-  if (await hasOrdersColumn('razorpay_order_id')) {
-    basePayload.razorpay_order_id = `wa_order_${nonce}`
+  if (!(await hasOrdersColumn('razorpay_order_id'))) {
+    delete basePayload.razorpay_order_id
   }
 
-  if (await hasOrdersColumn('razorpay_payment_id')) {
-    basePayload.razorpay_payment_id = `wa_pending_${nonce}`
+  if (!(await hasOrdersColumn('razorpay_payment_id'))) {
+    delete basePayload.razorpay_payment_id
   }
 
   const { data, error } = await supabaseAdmin
@@ -317,7 +326,41 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
   if (error) throw error
 
   const normalizedId = data.id.replace(/-/g, '')
-  return `ORD-${normalizedId.slice(-6).toUpperCase()}`
+  const displayOrderId = `ORD-${normalizedId.slice(-6).toUpperCase()}`
+  const amountPaise = Math.round(totalAmount * 100)
+
+  const paymentLink = await (razorpay as unknown as {
+    paymentLink: {
+      create: (payload: Record<string, unknown>) => Promise<{ short_url?: string | null }>
+    }
+  }).paymentLink.create({
+    amount: amountPaise,
+    currency: storeConfig.currency,
+    accept_partial: false,
+    description: `Payment for ${displayOrderId}`,
+    customer: {
+      name: customerName,
+      email: 'orders@millco.in',
+      contact: phone.replace(/\D/g, ''),
+    },
+    notify: {
+      sms: true,
+      email: false,
+    },
+    reminder_enable: true,
+    notes: {
+      db_order_id: data.id,
+      channel: 'whatsapp',
+      customer_phone: phone,
+    },
+  })
+
+  const paymentUrl = paymentLink.short_url?.trim()
+  if (!paymentUrl) {
+    throw new Error('Failed to generate payment link')
+  }
+
+  return { displayOrderId, paymentUrl }
 }
 
 export async function handleIncomingMessage(phone: string, text: string): Promise<void> {
@@ -558,10 +601,18 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
         const customerName = session.customerName?.trim() || 'Customer'
         const customerAddress = session.customerAddress?.trim() || ''
 
-        const orderId = await createWhatsappOrder(phone, session.cart, customerName, customerAddress)
+        const { displayOrderId, paymentUrl } = await createWhatsappOrder(phone, session.cart, customerName, customerAddress)
 
-        await sendWhatsAppMessage(phone, `Thank you! Your order is confirmed. Order ID: ${orderId}`)
-        await sendWhatsAppMessage(phone, getStoreContactLine())
+        await sendWhatsAppMessage(
+          phone,
+          [
+            `Order ${displayOrderId} is created and pending payment.`,
+            'Please complete payment using this secure link:',
+            paymentUrl,
+            '',
+            'You will receive final confirmation after successful payment.',
+          ].join('\n')
+        )
         await clearSession(phone)
         return
       }

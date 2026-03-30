@@ -3,6 +3,8 @@ import crypto from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { HttpError, jsonError, jsonOk } from '@/lib/server/api'
 import { env } from '@/lib/server/env'
+import { sendWhatsAppMessage } from '@/lib/whatsapp/meta'
+import { tenantConfig } from '@/lib/tenant.config'
 
 // Must be disabled so we can read the raw body for HMAC verification
 export const dynamic = 'force-dynamic'
@@ -20,14 +22,17 @@ const HANDLED_EVENTS = new Set([...PAID_EVENTS, ...RISK_EVENTS])
 function extractRefs(event: RazorpayWebhookEvent): {
   orderId?: string
   paymentId?: string
+  dbOrderId?: string
 } {
   const paymentEntity = event.payload?.payment?.entity
   const orderEntity = event.payload?.order?.entity
   const refundEntity = event.payload?.refund?.entity
+  const notes = paymentEntity?.notes ?? orderEntity?.notes
 
   return {
     orderId: paymentEntity?.order_id ?? orderEntity?.id ?? refundEntity?.order_id,
     paymentId: paymentEntity?.id ?? refundEntity?.payment_id,
+    dbOrderId: typeof notes?.db_order_id === 'string' ? notes.db_order_id : undefined,
   }
 }
 
@@ -70,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Extract order/payment references from payload
-    const { orderId: razorpayOrderId, paymentId: razorpayPaymentId } = extractRefs(event)
+    const { orderId: razorpayOrderId, paymentId: razorpayPaymentId, dbOrderId } = extractRefs(event)
 
     // For non-paid events, we acknowledge and log for operational visibility.
     // This prevents accidental auto-fulfillment state changes from risk events.
@@ -78,44 +83,77 @@ export async function POST(req: NextRequest) {
       return jsonOk({ received: true }, { requestId })
     }
 
-    if (!razorpayOrderId) {
+    if (!razorpayOrderId && !dbOrderId) {
       return jsonOk({ received: true }, { requestId })
     }
 
     const supabase = getSupabaseAdmin()
 
     // 6. Fetch the order (idempotency: skip if already Paid or beyond)
-    const { data: order, error: fetchError } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .eq('razorpay_order_id', razorpayOrderId)
-      .single()
+    let order: Record<string, unknown> | null = null
 
-    if (fetchError || !order) {
-      // Order might not exist yet if the webhook arrives before save-order completes.
-      // Razorpay retries webhooks, so returning 404 triggers a retry.
+    if (razorpayOrderId) {
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('razorpay_order_id', razorpayOrderId)
+        .maybeSingle()
+      order = data as Record<string, unknown> | null
+    }
+
+    if (!order && dbOrderId) {
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', dbOrderId)
+        .maybeSingle()
+      order = data as Record<string, unknown> | null
+    }
+
+    if (!order) {
       throw new HttpError(404, 'Order not found', 'ORDER_NOT_FOUND')
     }
 
     const ALREADY_HANDLED = new Set(['Paid', 'Processing', 'Shipped', 'Delivered'])
-    if (ALREADY_HANDLED.has(order.status)) {
+    const currentStatus = String(order.status ?? '')
+    if (ALREADY_HANDLED.has(currentStatus as 'Paid' | 'Processing' | 'Shipped' | 'Delivered')) {
       // Already processed — acknowledge without doing anything
       return jsonOk({ received: true }, { requestId })
     }
 
     // 7. Update order status to Paid and stamp the payment id if missing
     const updatePayload: Record<string, string> = { status: 'Paid' }
-    if (razorpayPaymentId && !order.razorpay_payment_id) {
+    const existingPaymentId = String(order.razorpay_payment_id ?? '')
+    if (razorpayPaymentId && (!existingPaymentId || existingPaymentId.startsWith('wa_pending_') || existingPaymentId !== razorpayPaymentId)) {
       updatePayload.razorpay_payment_id = razorpayPaymentId
+    }
+
+    if (razorpayOrderId) {
+      const existingOrderId = String(order.razorpay_order_id ?? '')
+      if (!existingOrderId || existingOrderId.startsWith('wa_pending_') || existingOrderId !== razorpayOrderId) {
+        updatePayload.razorpay_order_id = razorpayOrderId
+      }
     }
 
     const { error: updateError } = await supabase
       .from('orders')
       .update(updatePayload)
-      .eq('id', order.id)
+      .eq('id', String(order.id))
 
     if (updateError) {
       throw new HttpError(500, 'DB update failed', 'DB_UPDATE_FAILED', updateError)
+    }
+
+    const customerPhone = String(order.customer_phone ?? '').trim()
+    if (customerPhone) {
+      const normalizedId = String(order.id ?? '').replace(/-/g, '')
+      const displayOrderId = `ORD-${normalizedId.slice(-6).toUpperCase()}`
+      await sendWhatsAppMessage(customerPhone, `Thank you! Your payment is successful. Order confirmed: ${displayOrderId}`)
+
+      const whatsapp = tenantConfig.contact.whatsappNumber.trim()
+      if (whatsapp) {
+        await sendWhatsAppMessage(customerPhone, `For help, contact us on WhatsApp: ${whatsapp}`)
+      }
     }
 
     return jsonOk({ received: true }, { requestId })
@@ -144,6 +182,7 @@ interface RazorpayPaymentEntity {
   status: string
   amount: number
   currency: string
+  notes?: Record<string, string>
 }
 
 interface RazorpayWebhookEvent {
@@ -157,6 +196,7 @@ interface RazorpayWebhookEvent {
       entity: {
         id: string
         status: string
+        notes?: Record<string, string>
       }
     }
     refund?: {

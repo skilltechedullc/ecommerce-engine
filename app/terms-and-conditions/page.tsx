@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     title: '1. General Use of the Website',
-    body: 'By accessing or using shop.millco.in, you agree to use the website lawfully and in accordance with these Terms & Conditions. This website is operated by Millco Foodstuff Trading L.L.C for the sale of food and related products to customers in India and selected international destinations.',
+    body: 'By accessing or using shop.millco.in, you agree to use the website lawfully and in accordance with these Terms & Conditions. This website is operated by Millco Organic & Fresh Food Products for the sale of food and related products to customers in India and selected international destinations.',
   },
   {
     title: '2. Product Information and Availability',
@@ -41,7 +41,7 @@ const sections = [
   },
   {
     title: '9. Limitation of Liability',
-    body: 'To the maximum extent permitted by law, Millco Foodstuff Trading L.L.C will not be liable for indirect, incidental, special, or consequential losses arising from use of the website, delayed deliveries, third-party service interruptions, or misuse of customer accounts or devices. Our total liability in relation to any order will generally not exceed the amount paid for the affected order.',
+    body: 'To the maximum extent permitted by law, Millco Organic & Fresh Food Products will not be liable for indirect, incidental, special, or consequential losses arising from use of the website, delayed deliveries, third-party service interruptions, or misuse of customer accounts or devices. Our total liability in relation to any order will generally not exceed the amount paid for the affected order.',
   },
   {
     title: '10. Governing Law',
@@ -61,7 +61,7 @@ export default function TermsAndConditionsPage() {
         <h1 className={styles.title}>Terms & Conditions</h1>
         <p className={styles.intro}>
           These Terms & Conditions govern your access to shop.millco.in and your purchase of
-          products from Millco Foodstuff Trading L.L.C. Please read them carefully before using
+          products from Millco Organic & Fresh Food Products. Please read them carefully before using
           the website or placing an order.
         </p>
         <div className={styles.meta}>

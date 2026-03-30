@@ -3,7 +3,7 @@ import styles from '@/app/legal.module.css'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy Policy for Millco Foodstuff Trading L.L.C and shop.millco.in.',
+  description: 'Privacy Policy for Millco Organic & Fresh Food Products and shop.millco.in.',
 }
 
 const sections = [
@@ -41,7 +41,7 @@ const sections = [
   },
   {
     title: '9. International Orders',
-    body: 'Because Millco Foodstuff Trading L.L.C serves customers in India and may ship internationally, some information may be processed across borders where required for payment, logistics, customer service, or legal compliance.',
+    body: 'Because Millco Organic & Fresh Food Products serves customers in India and may ship internationally, some information may be processed across borders where required for payment, logistics, customer service, or legal compliance.',
   },
   {
     title: '10. Policy Updates',
@@ -56,12 +56,12 @@ export default function PrivacyPolicyPage() {
         <p className={styles.eyebrow}>Privacy Policy</p>
         <h1 className={styles.title}>Privacy Policy</h1>
         <p className={styles.intro}>
-          This Privacy Policy explains how Millco Foodstuff Trading L.L.C collects, uses,
+          This Privacy Policy explains how Millco Organic & Fresh Food Products collects, uses,
           stores, and protects personal information when you use shop.millco.in to browse,
           purchase, or communicate with us through the website, WhatsApp, email, or SMS.
         </p>
         <div className={styles.meta}>
-          <span className={styles.metaChip}>Brand: Millco Foodstuff Trading L.L.C</span>
+          <span className={styles.metaChip}>Brand: Millco Organic & Fresh Food Products</span>
           <span className={styles.metaChip}>Website: shop.millco.in</span>
           <span className={styles.metaChip}>Effective date: March 30, 2026</span>
         </div>

@@ -153,6 +153,14 @@ export default function Footer() {
               <Link href="/cart"     style={FOOTER_LINK}>Cart</Link>
               <Link href="/checkout" style={FOOTER_LINK}>Checkout</Link>
             </div>
+            <div style={{ marginTop: '26px' }}>
+              <h4 style={{ ...SECTION_HEADING, marginBottom: '16px' }}>Policies</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <Link href="/privacy-policy" style={FOOTER_LINK}>Privacy Policy</Link>
+                <Link href="/terms-and-conditions" style={FOOTER_LINK}>Terms & Conditions</Link>
+                <Link href="/refund-policy" style={FOOTER_LINK}>Refund Policy</Link>
+              </div>
+            </div>
             <a
               className="businessGateway"
               href={tenantConfig.branding.businessSiteUrl}

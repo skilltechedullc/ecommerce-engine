@@ -61,6 +61,7 @@ const currencySymbol = env('NEXT_PUBLIC_CURRENCY_SYMBOL', '₹')
 const phoneValidationPattern = env('NEXT_PUBLIC_PHONE_VALIDATION_PATTERN', '^[6-9]\\d{9}$')
 
 export type TenantConfig = {
+  whatsappBotWelcome: string
   branding: {
     name: string
     shortName: string
@@ -220,6 +221,7 @@ export type TenantConfig = {
 }
 
 export const tenantConfig: TenantConfig = {
+  whatsappBotWelcome: process.env.NEXT_PUBLIC_BRAND_NAME + ' WhatsApp Store',
   branding: {
     name: brandName,
     shortName: brandShortName,

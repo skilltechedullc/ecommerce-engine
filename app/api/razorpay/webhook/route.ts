@@ -135,16 +135,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update(updatePayload)
       .eq('id', String(order.id))
+      .in('status', ['Pending', 'pending'])
+      .select('id, customer_phone')
+      .maybeSingle()
 
     if (updateError) {
       throw new HttpError(500, 'DB update failed', 'DB_UPDATE_FAILED', updateError)
     }
 
-    const customerPhone = String(order.customer_phone ?? '').trim()
+    // Another webhook event may have already moved the status to Paid.
+    // In that case, skip outbound confirmations to avoid duplicate messages.
+    if (!updatedOrder) {
+      return jsonOk({ received: true }, { requestId })
+    }
+
+    const customerPhone = String(updatedOrder.customer_phone ?? order.customer_phone ?? '').trim()
     if (customerPhone) {
       const normalizedId = String(order.id ?? '').replace(/-/g, '')
       const displayOrderId = `ORD-${normalizedId.slice(-6).toUpperCase()}`

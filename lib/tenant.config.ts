@@ -123,6 +123,20 @@ export type TenantConfig = {
     loyaltyPoints: boolean
     abandonedCartRecovery: boolean
   }
+  shipping: {
+    provider: string
+    autoCreate: boolean
+    pickupAddress: {
+      name: string
+      phone: string
+      addressLine1: string
+      addressLine2?: string
+      city: string
+      state: string
+      pincode: string
+      country: string
+    }
+  }
   marketing: {
     header: {
       mobileSubtitle: string
@@ -285,6 +299,20 @@ export const tenantConfig: TenantConfig = {
     instagramSync: envBoolean('NEXT_PUBLIC_FEATURE_INSTAGRAM_SYNC', false),
     loyaltyPoints: envBoolean('NEXT_PUBLIC_FEATURE_LOYALTY_POINTS', false),
     abandonedCartRecovery: envBoolean('NEXT_PUBLIC_FEATURE_ABANDONED_CART_RECOVERY', false),
+  },
+  shipping: {
+    provider: env('SHIPPING_PROVIDER', 'manual'),
+    autoCreate: envBoolean('SHIPPING_AUTO_CREATE', false),
+    pickupAddress: {
+      name: env('SHIPPING_PICKUP_NAME', brandName),
+      phone: env('SHIPPING_PICKUP_PHONE', env('NEXT_PUBLIC_WHATSAPP_NUMBER', '')),
+      addressLine1: env('SHIPPING_PICKUP_ADDRESS_LINE1', ''),
+      addressLine2: env('SHIPPING_PICKUP_ADDRESS_LINE2', ''),
+      city: env('SHIPPING_PICKUP_CITY', ''),
+      state: env('SHIPPING_PICKUP_STATE', ''),
+      pincode: env('SHIPPING_PICKUP_PINCODE', ''),
+      country: env('SHIPPING_PICKUP_COUNTRY', 'India'),
+    },
   },
   marketing: {
     header: {

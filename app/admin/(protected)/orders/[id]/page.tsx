@@ -2,9 +2,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StatusUpdater from './StatusUpdater'
 import RetryFailedNotificationsButton from './RetryFailedNotificationsButton'
+import CreateShipmentButton from './CreateShipmentButton'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
 import { tenantConfig } from '@/lib/tenant.config'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 type OrderDetailPayload = {
   order: {
@@ -45,6 +47,16 @@ type NotificationLogsPayload = {
   }>
 }
 
+type ShipmentRow = {
+  id: string
+  provider: string | null
+  awb_number: string | null
+  tracking_url: string | null
+  status: string | null
+  pickup_scheduled_at: string | null
+  estimated_delivery: string | null
+}
+
 
 export default async function OrderDetailPage({
   params,
@@ -54,6 +66,7 @@ export default async function OrderDetailPage({
   const { id } = await params
   let payload: OrderDetailPayload
   let notificationLogs: NotificationLogsPayload['logs'] = []
+  const supabase = getSupabaseAdmin()
   try {
     ;[payload, { logs: notificationLogs }] = await Promise.all([
       fetchInternalApi<OrderDetailPayload>(`/api/orders/${id}`),
@@ -64,6 +77,12 @@ export default async function OrderDetailPage({
   }
 
   const { order, items } = payload
+  const { data: shipment } = await supabase
+    .from('shipments')
+    .select('id, provider, awb_number, tracking_url, status, pickup_scheduled_at, estimated_delivery')
+    .eq('order_id', order.id)
+    .order('created_at', { ascending: false })
+    .maybeSingle<ShipmentRow>()
 
   return (
     <div className="admin-stack">
@@ -124,6 +143,45 @@ export default async function OrderDetailPage({
           </p>
         </InfoCard>
       )}
+
+      <InfoCard title="Shipment" description="Courier and tracking details for this order.">
+        {shipment ? (
+          <>
+            <InfoRow label="Provider" value={formatProviderName(shipment.provider)} />
+            <InfoRow label="AWB / Tracking" value={shipment.awb_number || '—'} mono />
+            <div className="admin-summaryRow">
+              <span className="admin-summaryRow__label">Current status</span>
+              <ShipmentStatusPill status={shipment.status ?? 'pending'} />
+            </div>
+            <InfoRow
+              label="Pickup scheduled"
+              value={formatDateTime(shipment.pickup_scheduled_at)}
+            />
+            <InfoRow
+              label="Estimated delivery"
+              value={formatDateTime(shipment.estimated_delivery)}
+            />
+            {shipment.tracking_url ? (
+              <a
+                href={shipment.tracking_url}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-btn admin-btn--secondary"
+                style={{ marginTop: '12px', display: 'inline-flex' }}
+              >
+                View tracking
+              </a>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <p className="admin-sectionText" style={{ marginTop: 0 }}>
+              No shipment created yet.
+            </p>
+            <CreateShipmentButton orderId={order.id} />
+          </>
+        )}
+      </InfoCard>
 
       <section className="admin-surface admin-tableCard">
         <div style={{ padding: '24px 24px 8px' }}>
@@ -259,6 +317,47 @@ export default async function OrderDetailPage({
         </div>
       </section>
     </div>
+  )
+}
+
+function formatProviderName(provider: string | null): string {
+  const value = (provider ?? 'manual').toLowerCase()
+  if (value === 'shiprocket') return 'Shiprocket'
+  if (value === 'delhivery') return 'Delhivery'
+  return 'Manual'
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString(tenantConfig.region.numberLocale)
+}
+
+function ShipmentStatusPill({ status }: { status: string }) {
+  const normalized = status.toLowerCase()
+  const style = normalized === 'delivered'
+    ? { background: '#ecfdf3', color: '#166534', border: '#bbf7d0' }
+    : normalized === 'failed' || normalized === 'cancelled'
+      ? { background: '#fef2f2', color: '#b91c1c', border: '#fecaca' }
+      : { background: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' }
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: '24px',
+        padding: '0 10px',
+        borderRadius: '999px',
+        border: `1px solid ${style.border}`,
+        background: style.background,
+        color: style.color,
+        fontSize: '12px',
+        fontWeight: 700,
+        textTransform: 'capitalize',
+      }}
+    >
+      {status.replaceAll('_', ' ')}
+    </span>
   )
 }
 

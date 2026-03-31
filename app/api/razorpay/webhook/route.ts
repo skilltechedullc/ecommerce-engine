@@ -5,6 +5,8 @@ import { HttpError, jsonError, jsonOk } from '@/lib/server/api'
 import { env } from '@/lib/server/env'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/meta'
 import { tenantConfig } from '@/lib/tenant.config'
+import { createShipmentForOrder } from '@/lib/shipping/service'
+import type { Address, CreateShipmentInput } from '@/lib/shipping/types'
 
 // Must be disabled so we can read the raw body for HMAC verification
 export const dynamic = 'force-dynamic'
@@ -18,6 +20,45 @@ export const dynamic = 'force-dynamic'
 const PAID_EVENTS = new Set(['payment.captured', 'order.paid'])
 const RISK_EVENTS = new Set(['payment.failed', 'payment.dispute.created', 'refund.processed'])
 const HANDLED_EVENTS = new Set([...PAID_EVENTS, ...RISK_EVENTS])
+
+type ShipmentOrderItemRow = {
+  product_name: string | null
+  quantity: number | null
+  price: number | null
+}
+
+function parseDeliveryAddress(rawAddress: string, fallbackName: string, fallbackPhone: string): Address {
+  const trimmed = rawAddress.trim()
+  const [line1, line2] = trimmed
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return {
+    name: fallbackName,
+    phone: fallbackPhone,
+    addressLine1: line1 || trimmed || 'Address not provided',
+    addressLine2: line2,
+    city: tenantConfig.contact.address.city,
+    state: tenantConfig.contact.address.state,
+    pincode: tenantConfig.contact.address.postalCode,
+    country: tenantConfig.contact.address.country,
+  }
+}
+
+function getPickupAddress(): Address {
+  const pickup = tenantConfig.shipping.pickupAddress
+  return {
+    name: pickup.name,
+    phone: pickup.phone,
+    addressLine1: pickup.addressLine1,
+    addressLine2: pickup.addressLine2,
+    city: pickup.city,
+    state: pickup.state,
+    pincode: pickup.pincode,
+    country: pickup.country,
+  }
+}
 
 function extractRefs(event: RazorpayWebhookEvent): {
   orderId?: string
@@ -162,6 +203,58 @@ export async function POST(req: NextRequest) {
       const whatsapp = tenantConfig.contact.whatsappNumber.trim()
       if (whatsapp) {
         await sendWhatsAppMessage(customerPhone, `For help, contact us on WhatsApp: ${whatsapp}`)
+      }
+    }
+
+    if (tenantConfig.shipping.autoCreate) {
+      try {
+        const source = String(order.source ?? '').toLowerCase()
+        const customerChannel = source === 'whatsapp' || source === 'instagram'
+          ? source
+          : undefined
+
+        const { data: orderItems, error: itemsError } = await supabase
+          .from('order_items')
+          .select('product_name, quantity, price')
+          .eq('order_id', String(order.id))
+          .returns<ShipmentOrderItemRow[]>()
+
+        if (itemsError) {
+          console.error('[shipping] failed to fetch order_items for auto-create', itemsError)
+        } else {
+          const orderId = String(order.id)
+          const orderNumber = `ORD-${orderId.replace(/-/g, '').slice(-6).toUpperCase()}`
+          const customerName = String(order.customer_name ?? 'Customer').trim() || 'Customer'
+          const deliveryAddress = parseDeliveryAddress(String(order.customer_address ?? ''), customerName, customerPhone)
+
+          const shipmentInput: CreateShipmentInput = {
+            orderId,
+            orderNumber,
+            customerName,
+            customerPhone,
+            deliveryAddress,
+            pickupAddress: getPickupAddress(),
+            items: (orderItems ?? []).map((item) => ({
+              name: String(item.product_name ?? 'Product'),
+              quantity: Math.max(1, Number(item.quantity ?? 1)),
+              price: Number(item.price ?? 0),
+            })),
+            totalAmount: Number(order.total_amount ?? 0),
+            paymentMethod: 'prepaid',
+          }
+
+          const shipmentResult = await createShipmentForOrder(
+            shipmentInput,
+            customerChannel,
+            customerPhone || undefined
+          )
+
+          if (!shipmentResult.success) {
+            console.error('[shipping] auto-create shipment failed', shipmentResult.error)
+          }
+        }
+      } catch (shippingError) {
+        console.error('[shipping] auto-create shipment threw error', shippingError)
       }
     }
 

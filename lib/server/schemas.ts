@@ -85,6 +85,14 @@ export const orderStatusSchema = z.object({
   newStatus: z.enum(ORDER_STATUSES),
 })
 
+export const createShipmentSchema = z.object({
+  orderId: z.string().uuid('Order ID must be a valid UUID'),
+  weightGrams: z.number().int().positive().optional(),
+  paymentMethod: z.enum(['prepaid', 'cod']).optional(),
+  customerChannel: z.enum(['whatsapp', 'instagram']).optional(),
+  customerChannelId: z.string().min(1).optional(),
+})
+
 // ── Admin Login ───────────────────────────────────────────────────────────────
 
 export const adminLoginSchema = z.object({

@@ -38,7 +38,7 @@ export default function WhatsAppButton() {
       style={{
         position: 'fixed',
         bottom: isMobile ? '16px' : '28px',
-        right: isMobile ? '14px' : '28px',
+        left: isMobile ? '14px' : '28px',
         zIndex: 300,
         display: 'flex',
         alignItems: 'center',

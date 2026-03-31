@@ -60,8 +60,7 @@ export default function AiChatWidget() {
   const panelRef = useRef<HTMLElement | null>(null)
 
   const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout'
-  const hasWhatsAppFloating = Boolean(whatsappNumber) && !isCartOrCheckout
-  const isLifted = isCartOrCheckout || hasWhatsAppFloating
+  const isLifted = isCartOrCheckout
   const showQuickReplies = messages.length === 1 && messages[0]?.role === 'assistant'
 
   useEffect(() => {
@@ -329,7 +328,7 @@ export default function AiChatWidget() {
                 >
                   <div className={styles.messageGroup}>
                     <span className={styles.messageSender}>
-                      {message.role === 'user' ? 'You' : `${brandShort} AI`}
+                      {message.role === 'user' ? 'You' : `${brandShort} Assistant`}
                     </span>
                     <div
                       className={`${styles.messageBubble} ${
@@ -361,7 +360,7 @@ export default function AiChatWidget() {
               {isLoading ? (
                 <div className={`${styles.messageRow} ${styles.messageRowAssistant}`}>
                   <div className={styles.messageGroup}>
-                    <span className={styles.messageSender}>{brandShort} AI</span>
+                    <span className={styles.messageSender}>{brandShort} Assistant</span>
                     <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
                       <div className={styles.typingDots} aria-label="Assistant is typing">
                         <span />

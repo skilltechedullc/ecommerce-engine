@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tenantConfig } from '@/lib/tenant.config'
 
 type OrderItem = {
@@ -14,7 +15,25 @@ type DashboardOrder = {
   total_amount: number | null
   created_at: string | null
   status: string | null
+  payment_method?: string | null
   order_items?: OrderItem[] | null
+}
+
+type ChannelOrderRow = {
+  payment_method: string | null
+  total_amount: number | null
+}
+
+type LowStockVariantRow = {
+  id: string
+  product_id: string
+  stock: number | null
+  weight: string | null
+  products: Array<{
+    id: string
+    name: string
+    is_active: boolean
+  }>
 }
 
 function dateKey(date: Date) {
@@ -30,10 +49,81 @@ export default async function AdminDashboard() {
     orders: DashboardOrder[]
   }>('/api/orders/list')
 
+  const supabase = getSupabaseAdmin()
+
+  const { data: channelRows, error: channelError } = await supabase
+    .from('orders')
+    .select('payment_method, total_amount')
+
+  if (channelError) {
+    throw new Error(`Failed to load channel analytics: ${channelError.message}`)
+  }
+
+  const { data: lowStockRows, error: lowStockError } = await supabase
+    .from('product_variants')
+    .select('id, product_id, stock, weight, products!inner(id, name, is_active)')
+    .lte('stock', 10)
+    .eq('products.is_active', true)
+    .order('stock', { ascending: true })
+
+  if (lowStockError) {
+    throw new Error(`Failed to load low stock data: ${lowStockError.message}`)
+  }
+
   const safeOrders = orders ?? []
   const totalOrders = safeOrders.length
   const totalRevenue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  const thisMonthOrders = safeOrders.filter((order) => {
+    const createdAt = order.created_at ? new Date(order.created_at) : null
+    return createdAt && createdAt >= monthStart
+  })
+
+  const lastMonthOrders = safeOrders.filter((order) => {
+    const createdAt = order.created_at ? new Date(order.created_at) : null
+    return createdAt && createdAt >= lastMonthStart && createdAt < monthStart
+  })
+
+  const thisMonthRevenue = thisMonthOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
+  const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
+  const thisMonthAverageOrderValue = thisMonthOrders.length > 0 ? thisMonthRevenue / thisMonthOrders.length : 0
+
+  let monthComparisonText = 'New data'
+  let monthComparisonColor = 'var(--admin-text-muted)'
+
+  if (lastMonthRevenue > 0) {
+    const changePercent = ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+    if (changePercent > 0) {
+      monthComparisonText = `↑ ${changePercent.toFixed(1)}% vs last month`
+      monthComparisonColor = '#047857'
+    } else if (changePercent < 0) {
+      monthComparisonText = `↓ ${Math.abs(changePercent).toFixed(1)}% vs last month`
+      monthComparisonColor = '#b91c1c'
+    } else {
+      monthComparisonText = 'New data'
+      monthComparisonColor = 'var(--admin-text-muted)'
+    }
+  }
+
+  const channelData = (channelRows ?? []) as ChannelOrderRow[]
+  const whatsappOrders = channelData.filter((row) => row.payment_method === 'whatsapp_cod')
+  const webOrders = channelData.filter((row) => row.payment_method !== 'whatsapp_cod')
+  const whatsappOrdersCount = whatsappOrders.length
+  const webOrdersCount = webOrders.length
+  const whatsappRevenue = whatsappOrders.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
+  const webRevenue = webOrders.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
+  const totalChannelOrders = whatsappOrdersCount + webOrdersCount
+  const webPercent = totalChannelOrders > 0 ? (webOrdersCount / totalChannelOrders) * 100 : 0
+  const whatsappPercent = totalChannelOrders > 0 ? (whatsappOrdersCount / totalChannelOrders) * 100 : 0
+
+  const lowStockVariants = ((lowStockRows ?? []) as LowStockVariantRow[]).filter(
+    (variant) => Number(variant.stock ?? 0) <= 10
+  )
+  const lowStockPreview = lowStockVariants.slice(0, 5)
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const todaysOrders = safeOrders.filter((order) => order.created_at?.startsWith(todayStr)).length
@@ -78,11 +168,127 @@ export default async function AdminDashboard() {
 
   return (
     <div className="admin-stack">
-      <div className="admin-metricGrid">
+      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
         <StatCard href="/admin/orders" label="Total Orders" value={String(totalOrders)} hint="All-time completed and active orders." />
-        <StatCard href="/admin/orders" label="Revenue" value={moneyWithSymbol(totalRevenue)} hint={`Average order value ${moneyWithSymbol(averageOrderValue)}`} />
+        <StatCard href="/admin/orders" label="Revenue" value={moneyWithSymbol(totalRevenue)} hint={`This month: ${moneyWithSymbol(thisMonthRevenue)}`} />
         <StatCard href="/admin/orders?scope=today" label="Today Orders" value={String(todaysOrders)} hint="Click through to review today’s orders." />
+        <section className="admin-surface admin-metricCard admin-interactiveCard">
+          <p className="admin-metricCard__label">This Month</p>
+          <p className="admin-metricCard__value">{moneyWithSymbol(thisMonthRevenue)}</p>
+          <p className="admin-metricCard__hint" style={{ color: monthComparisonColor }}>
+            {monthComparisonText}
+          </p>
+          <p className="admin-metricCard__hint">Avg order value {moneyWithSymbol(thisMonthAverageOrderValue)}</p>
+        </section>
       </div>
+
+      <section className="admin-surface">
+        <p className="admin-sectionEyebrow">Channel Breakdown</p>
+        <h2 className="admin-sectionTitle">Order channels</h2>
+        <p className="admin-sectionText">Compare website and WhatsApp performance at a glance.</p>
+
+        <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '16px' }}>
+          <div className="admin-listRow" style={{ alignItems: 'flex-start' }}>
+            <div>
+              <p className="admin-metricCard__label" style={{ marginBottom: '8px' }}>Website</p>
+              <p className="admin-metricCard__value" style={{ marginTop: 0, fontSize: '2rem' }}>{webOrdersCount}</p>
+              <p className="admin-metricCard__hint">Revenue: {moneyWithSymbol(webRevenue)}</p>
+            </div>
+            <span style={{ color: 'var(--tenant-primary-gradient-end)', fontSize: '18px' }}>●</span>
+          </div>
+
+          <div className="admin-listRow" style={{ alignItems: 'flex-start' }}>
+            <div>
+              <p className="admin-metricCard__label" style={{ marginBottom: '8px' }}>WhatsApp</p>
+              <p className="admin-metricCard__value" style={{ marginTop: 0, fontSize: '2rem' }}>{whatsappOrdersCount}</p>
+              <p className="admin-metricCard__hint">Revenue: {moneyWithSymbol(whatsappRevenue)}</p>
+            </div>
+            <span style={{ color: 'var(--tenant-primary-dark)', fontSize: '18px' }}>●</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '14px' }}>
+          <div
+            style={{
+              display: 'flex',
+              width: '100%',
+              borderRadius: '999px',
+              overflow: 'hidden',
+              background: 'rgba(15, 23, 42, 0.08)',
+              height: '30px',
+            }}
+            aria-label="Order channel percentages"
+          >
+            <div
+              style={{
+                width: `${webPercent}%`,
+                background: 'var(--tenant-primary-gradient-end)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {webPercent >= 22 ? `${webPercent.toFixed(0)}%` : ''}
+            </div>
+            <div
+              style={{
+                width: `${whatsappPercent}%`,
+                background: 'var(--tenant-primary-dark)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {whatsappPercent >= 22 ? `${whatsappPercent.toFixed(0)}%` : ''}
+            </div>
+          </div>
+
+          <div className="admin-summaryRow" style={{ marginTop: '8px', borderTop: 'none', paddingTop: 0 }}>
+            <span className="admin-summaryRow__label">Website {webPercent.toFixed(1)}%</span>
+            <span className="admin-summaryRow__label">WhatsApp {whatsappPercent.toFixed(1)}%</span>
+          </div>
+        </div>
+      </section>
+
+      {lowStockVariants.length > 0 ? (
+        <section
+          className="admin-surface"
+          style={{ border: '1px solid #fdba74', background: 'linear-gradient(180deg, #fffaf0, #fff7ed)' }}
+        >
+          <p className="admin-sectionEyebrow" style={{ color: '#b45309' }}>Inventory Alert</p>
+          <h2 className="admin-sectionTitle" style={{ color: '#92400e' }}>
+            {lowStockVariants.length} products are low on stock
+          </h2>
+          <div className="admin-listStack" style={{ marginTop: '12px' }}>
+            {lowStockPreview.map((variant) => (
+              <Link
+                key={variant.id}
+                href={`/admin/products/${variant.product_id}`}
+                className="admin-listRow"
+                style={{ textDecoration: 'none' }}
+              >
+                <div>
+                  <p className="admin-tableProduct__name" style={{ marginBottom: '2px' }}>
+                    {variant.products?.[0]?.name ?? 'Product'} · {variant.weight || 'Variant'}
+                  </p>
+                  <p className="admin-tableProduct__meta">Tap to manage inventory</p>
+                </div>
+                <span className={`admin-badge ${Number(variant.stock ?? 0) === 0 ? 'admin-badge--danger' : 'admin-badge--warning'}`}>
+                  {Number(variant.stock ?? 0)} stock
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="admin-detailGrid">
         <section className="admin-surface">

@@ -16,7 +16,7 @@ type ProductRecord = {
   image: string | null
   category: string | null
   is_active: boolean
-  product_variants: Array<{ price: number | null; compare_at_price: number | null; stock: number | null; image?: string | string[] | null }>
+  product_variants: Array<{ price: number | null; compare_at_price: number | null; stock: number | null; image?: string | string[] | null; weight?: string | null }>
 }
 
 export default function ProductsClient({ products }: { products: ProductRecord[] }) {
@@ -198,7 +198,9 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
                     product.product_variants?.map((variant) => variant.image),
                     storeConfig.logoUrl,
                   ) ?? storeConfig.logoUrl
-                  const stockTone = totalStock <= 0 ? 'critical' : totalStock < 10 ? 'warning' : 'positive'
+                  const isOutOfStock = totalStock === 0
+                  const isLowStock = totalStock <= 10 && totalStock > 0
+                  const stockTone = isOutOfStock ? 'critical' : isLowStock ? 'warning' : 'positive'
 
                   return (
                     <tr
@@ -231,9 +233,17 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
                         </span>
                       </td>
                       <td>
-                        <span className={`admin-stockPill admin-stockPill--${stockTone}`}>
-                          {totalStock <= 0 ? 'Out of stock' : `${totalStock} in stock`}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span className={`admin-stockPill admin-stockPill--${stockTone}`}>
+                            {totalStock} stock
+                          </span>
+                          {isLowStock ? (
+                            <span className="admin-badge admin-badge--warning">Low stock</span>
+                          ) : null}
+                          {isOutOfStock ? (
+                            <span className="admin-badge admin-badge--danger">Out of stock</span>
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <div style={{ display: 'grid', gap: '2px' }}>

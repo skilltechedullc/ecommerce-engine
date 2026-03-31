@@ -15,12 +15,12 @@ type DashboardOrder = {
   total_amount: number | null
   created_at: string | null
   status: string | null
-  customer_address?: string | null
+  source?: string | null
   order_items?: OrderItem[] | null
 }
 
 type ChannelOrderRow = {
-  customer_address: string | null
+  source: string | null
   total_amount: number | null
 }
 
@@ -42,17 +42,6 @@ function dateKey(date: Date) {
 
 function shortDayLabel(date: Date) {
   return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short' })
-}
-
-function isLikelyWhatsAppOrder(address: string | null): boolean {
-  if (!address) return false
-  const normalized = address.toLowerCase()
-  return (
-    normalized.includes('whatsapp')
-    || normalized.includes('wa.me')
-    || normalized.includes('w/a')
-    || normalized.includes('via whatsapp')
-  )
 }
 
 export default async function AdminDashboard() {
@@ -109,20 +98,24 @@ export default async function AdminDashboard() {
   try {
     const { data: channelRows, error: channelError } = await supabase
       .from('orders')
-      .select('customer_address, total_amount')
+      .select('source, total_amount')
 
     if (channelError) {
-      throw channelError
+      if (channelError.message.includes('orders.source')) {
+        channelData = []
+      } else {
+        throw channelError
+      }
+    } else {
+      channelData = (channelRows ?? []) as ChannelOrderRow[]
     }
-
-    channelData = (channelRows ?? []) as ChannelOrderRow[]
   } catch (error) {
     console.error('Failed to load channel analytics:', error)
     channelData = []
   }
 
-  const whatsappOrders = channelData.filter((row) => isLikelyWhatsAppOrder(row.customer_address))
-  const webOrders = channelData.filter((row) => !isLikelyWhatsAppOrder(row.customer_address))
+  const whatsappOrders = channelData.filter((row) => row.source === 'whatsapp')
+  const webOrders = channelData.filter((row) => row.source === 'web' || row.source == null)
   const whatsappOrdersCount = whatsappOrders.length
   const webOrdersCount = webOrders.length
   const whatsappRevenue = whatsappOrders.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)

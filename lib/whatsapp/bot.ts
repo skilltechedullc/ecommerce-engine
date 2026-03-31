@@ -286,12 +286,9 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     customer_address: customerAddress,
     total_amount: totalAmount,
     status: 'Pending',
+    source: 'whatsapp',
     razorpay_order_id: `wa_pending_order_${nonce}`,
     razorpay_payment_id: `wa_pending_payment_${nonce}`,
-  }
-
-  if (await hasOrdersColumn('payment_method')) {
-    basePayload.payment_method = 'whatsapp_cod'
   }
 
   if (await hasOrdersColumn('items')) {
@@ -303,10 +300,6 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
       price: item.price,
       quantity: item.quantity,
     }))
-  }
-
-  if (await hasOrdersColumn('source')) {
-    basePayload.source = 'whatsapp'
   }
 
   if (!(await hasOrdersColumn('razorpay_order_id'))) {

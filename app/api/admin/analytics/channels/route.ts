@@ -4,19 +4,8 @@ import { isAdminSessionAuthenticated } from '@/lib/server/adminSession'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 type ChannelOrderRow = {
-  customer_address: string | null
+  source: string | null
   total_amount: number | null
-}
-
-function isLikelyWhatsAppOrder(address: string | null): boolean {
-  if (!address) return false
-  const normalized = address.toLowerCase()
-  return (
-    normalized.includes('whatsapp')
-    || normalized.includes('wa.me')
-    || normalized.includes('w/a')
-    || normalized.includes('via whatsapp')
-  )
 }
 
 export async function GET(req: NextRequest) {
@@ -27,22 +16,46 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin()
-    const { data, error } = await supabase
-      .from('orders')
-      .select('customer_address, total_amount')
+    const [{ data: whatsappRows, error: whatsappError }, { data: webRows, error: webError }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('source, total_amount')
+        .eq('source', 'whatsapp'),
+      supabase
+        .from('orders')
+        .select('source, total_amount')
+        .or('source.eq.web,source.is.null'),
+    ])
 
-    if (error) {
-      throw new HttpError(500, error.message, 'DB_FETCH_FAILED')
+    if (whatsappError) {
+      if (whatsappError.message.includes('orders.source')) {
+        throw new HttpError(
+          500,
+          'Orders source column is missing. Apply the latest Supabase migration before using channel analytics.',
+          'DB_SCHEMA_OUTDATED'
+        )
+      }
+      throw new HttpError(500, whatsappError.message, 'DB_FETCH_FAILED')
     }
 
-    const rows = (data ?? []) as ChannelOrderRow[]
-    const whatsappRows = rows.filter((row) => isLikelyWhatsAppOrder(row.customer_address))
-    const webRows = rows.filter((row) => !isLikelyWhatsAppOrder(row.customer_address))
+    if (webError) {
+      if (webError.message.includes('orders.source')) {
+        throw new HttpError(
+          500,
+          'Orders source column is missing. Apply the latest Supabase migration before using channel analytics.',
+          'DB_SCHEMA_OUTDATED'
+        )
+      }
+      throw new HttpError(500, webError.message, 'DB_FETCH_FAILED')
+    }
 
-    const whatsapp_orders = whatsappRows.length
-    const web_orders = webRows.length
-    const whatsapp_revenue = whatsappRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
-    const web_revenue = webRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
+    const whatsappData = (whatsappRows ?? []) as ChannelOrderRow[]
+    const webData = (webRows ?? []) as ChannelOrderRow[]
+
+    const whatsapp_orders = whatsappData.length
+    const web_orders = webData.length
+    const whatsapp_revenue = whatsappData.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
+    const web_revenue = webData.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
 
     return jsonOk(
       {

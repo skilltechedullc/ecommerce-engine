@@ -361,6 +361,7 @@ export async function POST(req: NextRequest) {
         customer_phone: customer.phone,
         customer_address: customer.address,
         total_amount: expectedTotal,
+        source: 'web',
         razorpay_order_id,
         razorpay_payment_id,
       })

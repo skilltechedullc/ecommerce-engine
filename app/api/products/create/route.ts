@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
         .from('product_variants')
         .insert({
           product_id: newProduct.id,
+          name: variant.name,
           weight: variant.name,
           price: variant.price,
           compare_at_price: variant.compare_at_price,

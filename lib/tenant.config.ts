@@ -62,6 +62,7 @@ const phoneValidationPattern = env('NEXT_PUBLIC_PHONE_VALIDATION_PATTERN', '^[6-
 
 export type TenantConfig = {
   whatsappBotWelcome: string
+  instagramPageId: string
   branding: {
     name: string
     shortName: string
@@ -118,6 +119,7 @@ export type TenantConfig = {
   }
   features: {
     whatsappBot: boolean
+    instagramDmBot: boolean
     aiChat: boolean
     instagramSync: boolean
     loyaltyPoints: boolean
@@ -222,6 +224,7 @@ export type TenantConfig = {
 
 export const tenantConfig: TenantConfig = {
   whatsappBotWelcome: `${brandName} WhatsApp Store`,
+  instagramPageId: env('NEXT_PUBLIC_INSTAGRAM_PAGE_ID', ''),
   branding: {
     name: brandName,
     shortName: brandShortName,
@@ -281,6 +284,7 @@ export const tenantConfig: TenantConfig = {
   },
   features: {
     whatsappBot: envBoolean('NEXT_PUBLIC_FEATURE_WHATSAPP_BOT', false),
+    instagramDmBot: envBoolean('NEXT_PUBLIC_FEATURE_INSTAGRAM_DM_BOT', false),
     aiChat: envBoolean('NEXT_PUBLIC_FEATURE_AI_CHAT', true),
     instagramSync: envBoolean('NEXT_PUBLIC_FEATURE_INSTAGRAM_SYNC', false),
     loyaltyPoints: envBoolean('NEXT_PUBLIC_FEATURE_LOYALTY_POINTS', false),

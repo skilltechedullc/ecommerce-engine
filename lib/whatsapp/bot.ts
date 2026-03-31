@@ -4,8 +4,8 @@ import { formatMoney } from '@/lib/money'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tenantConfig } from '@/lib/tenant.config'
 import { env } from '@/lib/server/env'
-import { sendWhatsAppMessage } from '@/lib/whatsapp/meta'
-import { clearSession, getSession, updateSession, type CartItem } from '@/lib/whatsapp/session'
+import { sendMessage, type Channel } from '@/lib/chat/sender'
+import { clearSession, getSession, updateSession, type CartItem } from '@/lib/chat/session'
 
 type ProductRow = {
   id: string
@@ -210,32 +210,32 @@ function parseSelectingQuantityStep(step: string): { productId: string; variantI
   return { productId, variantId }
 }
 
-async function sendMenu(phone: string): Promise<void> {
-  await sendWhatsAppMessage(phone, buildWelcomeMenu())
-  await updateSession(phone, { step: 'menu' })
+async function sendMenu(phone: string, channel: Channel): Promise<void> {
+  await sendMessage(phone, buildWelcomeMenu(), channel)
+  await updateSession(phone, channel, { step: 'menu' })
 }
 
-async function sendProductsAndSetBrowsing(phone: string): Promise<void> {
+async function sendProductsAndSetBrowsing(phone: string, channel: Channel): Promise<void> {
   const products = await fetchActiveProducts()
   if (products.length === 0) {
-    await sendWhatsAppMessage(phone, 'No products are available right now. Please try again later.')
-    await updateSession(phone, { step: 'menu' })
+    await sendMessage(phone, 'No products are available right now. Please try again later.', channel)
+    await updateSession(phone, channel, { step: 'menu' })
     return
   }
 
-  await sendWhatsAppMessage(phone, buildProductList(products))
-  await updateSession(phone, { step: 'browsing' })
+  await sendMessage(phone, buildProductList(products), channel)
+  await updateSession(phone, channel, { step: 'browsing' })
 }
 
-async function startCheckout(phone: string, cart: CartItem[]): Promise<void> {
+async function startCheckout(phone: string, channel: Channel, cart: CartItem[]): Promise<void> {
   if (cart.length === 0) {
-    await sendWhatsAppMessage(phone, 'Your cart is empty. Send anything to start again.')
-    await updateSession(phone, { step: 'idle' })
+    await sendMessage(phone, 'Your cart is empty. Send anything to start again.', channel)
+    await updateSession(phone, channel, { step: 'idle' })
     return
   }
 
-  await sendWhatsAppMessage(phone, 'Please share your full name for delivery')
-  await updateSession(phone, { step: 'checkout_name' })
+  await sendMessage(phone, 'Please share your full name for delivery', channel)
+  await updateSession(phone, channel, { step: 'checkout_name' })
 }
 
 function buildOrderSummary(cart: CartItem[], customerName: string, customerAddress: string): string {
@@ -275,7 +275,13 @@ async function hasOrdersColumn(column: string): Promise<boolean> {
   return true
 }
 
-async function createWhatsappOrder(phone: string, cart: CartItem[], customerName: string, customerAddress: string): Promise<{ displayOrderId: string; paymentUrl: string }> {
+async function createChannelOrder(
+  phone: string,
+  cart: CartItem[],
+  customerName: string,
+  customerAddress: string,
+  channel: Channel
+): Promise<{ displayOrderId: string; paymentUrl: string }> {
   const totalAmount = cartTotal(cart)
   const nonce = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 
@@ -286,12 +292,12 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     customer_address: customerAddress,
     total_amount: totalAmount,
     status: 'Pending',
-    razorpay_order_id: `wa_pending_order_${nonce}`,
-    razorpay_payment_id: `wa_pending_payment_${nonce}`,
+    razorpay_order_id: `${channel}_pending_order_${nonce}`,
+    razorpay_payment_id: `${channel}_pending_payment_${nonce}`,
   }
 
   if (await hasOrdersColumn('payment_method')) {
-    basePayload.payment_method = 'whatsapp_cod'
+    basePayload.payment_method = `${channel}_cod`
   }
 
   if (await hasOrdersColumn('items')) {
@@ -306,7 +312,7 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
   }
 
   if (await hasOrdersColumn('source')) {
-    basePayload.source = 'whatsapp'
+    basePayload.source = channel
   }
 
   if (!(await hasOrdersColumn('razorpay_order_id'))) {
@@ -350,7 +356,7 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
     reminder_enable: true,
     notes: {
       db_order_id: data.id,
-      channel: 'whatsapp',
+      channel,
       customer_phone: phone,
     },
   })
@@ -363,14 +369,19 @@ async function createWhatsappOrder(phone: string, cart: CartItem[], customerName
   return { displayOrderId, paymentUrl }
 }
 
-export async function handleIncomingMessage(phone: string, text: string): Promise<void> {
+export async function handleIncomingMessage(
+  phone: string,
+  text: string,
+  channel: Channel = 'whatsapp'
+): Promise<void> {
   const input = normalizeInput(text)
 
   try {
-    const session = await getSession(phone)
+    const session = await getSession(phone, channel)
 
-    if (!tenantConfig.features.whatsappBot) {
-      await sendWhatsAppMessage(phone, 'WhatsApp ordering is currently unavailable. Please try again later.')
+    const featureKey = channel === 'whatsapp' ? 'whatsappBot' : 'instagramDmBot'
+    if (!tenantConfig.features[featureKey as keyof typeof tenantConfig.features]) {
+      await sendMessage(phone, `${channel} ordering is currently unavailable. Please try again later.`, channel)
       return
     }
 
@@ -386,65 +397,65 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
       'checkout_address',
       'checkout_confirm',
     ].includes(session.step))) {
-      await sendMenu(phone)
+      await sendMenu(phone, channel)
       return
     }
 
     if (session.step === 'menu') {
       if (input === '1') {
-        await sendProductsAndSetBrowsing(phone)
+        await sendProductsAndSetBrowsing(phone, channel)
         return
       }
 
       if (input === '2') {
-        await sendWhatsAppMessage(phone, buildCartMessage(session.cart))
-        await updateSession(phone, { step: session.cart.length > 0 ? 'cart_review' : 'menu' })
+        await sendMessage(phone, buildCartMessage(session.cart), channel)
+        await updateSession(phone, channel, { step: session.cart.length > 0 ? 'cart_review' : 'menu' })
         return
       }
 
       if (input === '3') {
-        await sendWhatsAppMessage(phone, ['Need help?', getStoreContactLine()].join('\n'))
-        await updateSession(phone, { step: 'idle' })
+        await sendMessage(phone, ['Need help?', getStoreContactLine()].join('\n'), channel)
+        await updateSession(phone, channel, { step: 'idle' })
         return
       }
 
-      await sendMenu(phone)
+      await sendMenu(phone, channel)
       return
     }
 
     if (session.step === 'browsing') {
       const products = await fetchActiveProducts()
       if (products.length === 0) {
-        await sendWhatsAppMessage(phone, 'No products are available right now. Please try again later.')
-        await updateSession(phone, { step: 'idle' })
+        await sendMessage(phone, 'No products are available right now. Please try again later.', channel)
+        await updateSession(phone, channel, { step: 'idle' })
         return
       }
 
       const choice = parseChoice(input)
       if (!choice || choice < 1 || choice > products.length) {
-        await sendWhatsAppMessage(phone, buildProductList(products))
+        await sendMessage(phone, buildProductList(products), channel)
         return
       }
 
       const selectedProduct = products[choice - 1]
       const variants = await fetchVariantsForProduct(selectedProduct.id)
       if (variants.length === 0) {
-        await sendWhatsAppMessage(phone, 'This product is currently unavailable. Please choose another product.')
-        await sendWhatsAppMessage(phone, buildProductList(products))
-        await updateSession(phone, { step: 'browsing' })
+        await sendMessage(phone, 'This product is currently unavailable. Please choose another product.', channel)
+        await sendMessage(phone, buildProductList(products), channel)
+        await updateSession(phone, channel, { step: 'browsing' })
         return
       }
 
-      await sendWhatsAppMessage(phone, buildVariantList(selectedProduct.name, variants))
-      await updateSession(phone, { step: selectingVariantStep(selectedProduct.id) })
+      await sendMessage(phone, buildVariantList(selectedProduct.name, variants), channel)
+      await updateSession(phone, channel, { step: selectingVariantStep(selectedProduct.id) })
       return
     }
 
     if (variantProductId) {
       const variants = await fetchVariantsForProduct(variantProductId)
       if (variants.length === 0) {
-        await sendWhatsAppMessage(phone, 'This product is currently unavailable. Please select a different product.')
-        await sendProductsAndSetBrowsing(phone)
+        await sendMessage(phone, 'This product is currently unavailable. Please select a different product.', channel)
+        await sendProductsAndSetBrowsing(phone, channel)
         return
       }
 
@@ -457,20 +468,20 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
           .maybeSingle<{ name: string }>()
 
         const productName = productData?.name ?? 'Selected product'
-        await sendWhatsAppMessage(phone, buildVariantList(productName, variants))
+        await sendMessage(phone, buildVariantList(productName, variants), channel)
         return
       }
 
       const selectedVariant = variants[choice - 1]
-      await sendWhatsAppMessage(phone, 'How many would you like? (reply with a number)')
-      await updateSession(phone, { step: selectingQuantityStep(variantProductId, selectedVariant.id) })
+      await sendMessage(phone, 'How many would you like? (reply with a number)', channel)
+      await updateSession(phone, channel, { step: selectingQuantityStep(variantProductId, selectedVariant.id) })
       return
     }
 
     if (quantityContext) {
       const quantity = Number.parseInt(input, 10)
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
-        await sendWhatsAppMessage(phone, 'Please enter a valid quantity between 1 and 20.')
+        await sendMessage(phone, 'Please enter a valid quantity between 1 and 20.', channel)
         return
       }
 
@@ -516,83 +527,83 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
         })
       }
 
-      await updateSession(phone, { cart: nextCart, step: 'post_add' })
-      await sendWhatsAppMessage(phone, `Added ${quantity} x ${productData.name} (${variantName}) to your cart`)
-      await sendWhatsAppMessage(phone, buildPostAddOptions())
+      await updateSession(phone, channel, { cart: nextCart, step: 'post_add' })
+      await sendMessage(phone, `Added ${quantity} x ${productData.name} (${variantName}) to your cart`, channel)
+      await sendMessage(phone, buildPostAddOptions(), channel)
       return
     }
 
     if (session.step === 'post_add') {
       if (input === '1') {
-        await sendProductsAndSetBrowsing(phone)
+        await sendProductsAndSetBrowsing(phone, channel)
         return
       }
 
       if (input === '2') {
-        await sendWhatsAppMessage(phone, buildCartMessage(session.cart))
-        await updateSession(phone, { step: session.cart.length > 0 ? 'cart_review' : 'menu' })
+        await sendMessage(phone, buildCartMessage(session.cart), channel)
+        await updateSession(phone, channel, { step: session.cart.length > 0 ? 'cart_review' : 'menu' })
         return
       }
 
       if (input === '3') {
-        await startCheckout(phone, session.cart)
+        await startCheckout(phone, channel, session.cart)
         return
       }
 
-      await sendWhatsAppMessage(phone, buildPostAddOptions())
+      await sendMessage(phone, buildPostAddOptions(), channel)
       return
     }
 
     if (session.step === 'cart_review') {
       if (input === '1') {
-        await startCheckout(phone, session.cart)
+        await startCheckout(phone, channel, session.cart)
         return
       }
 
       if (input === '2') {
-        await clearSession(phone)
-        await sendWhatsAppMessage(phone, 'Cart cleared. Send anything to start again.')
+        await clearSession(phone, channel)
+        await sendMessage(phone, 'Cart cleared. Send anything to start again.', channel)
         return
       }
 
       if (input === '3') {
-        await sendProductsAndSetBrowsing(phone)
+        await sendProductsAndSetBrowsing(phone, channel)
         return
       }
 
-      await sendWhatsAppMessage(phone, buildCartMessage(session.cart))
+      await sendMessage(phone, buildCartMessage(session.cart), channel)
       return
     }
 
     if (session.step === 'checkout_name') {
       if (!input) {
-        await sendWhatsAppMessage(phone, 'Please share your full name for delivery')
+        await sendMessage(phone, 'Please share your full name for delivery', channel)
         return
       }
 
-      await updateSession(phone, {
+      await updateSession(phone, channel, {
         customerName: input,
         step: 'checkout_address',
       })
 
-      await sendWhatsAppMessage(phone, 'Please share your delivery address (include city and pincode)')
+      await sendMessage(phone, 'Please share your delivery address (include city and pincode)', channel)
       return
     }
 
     if (session.step === 'checkout_address') {
       if (!input) {
-        await sendWhatsAppMessage(phone, 'Please share your delivery address (include city and pincode)')
+        await sendMessage(phone, 'Please share your delivery address (include city and pincode)', channel)
         return
       }
 
       const customerName = session.customerName?.trim() || 'Customer'
 
-      await updateSession(phone, {
+      await updateSession(phone, channel, {
         customerAddress: input,
         step: 'checkout_confirm',
       })
 
-      await sendWhatsAppMessage(phone, buildOrderSummary(session.cart, customerName, input))
+      await sendMessage(phone, buildOrderSummary(session.cart, customerName, input), channel)
       return
     }
 
@@ -601,9 +612,9 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
         const customerName = session.customerName?.trim() || 'Customer'
         const customerAddress = session.customerAddress?.trim() || ''
 
-        const { displayOrderId, paymentUrl } = await createWhatsappOrder(phone, session.cart, customerName, customerAddress)
+        const { displayOrderId, paymentUrl } = await createChannelOrder(phone, session.cart, customerName, customerAddress, channel)
 
-        await sendWhatsAppMessage(
+        await sendMessage(
           phone,
           [
             `Order ${displayOrderId} is created and pending payment.`,
@@ -611,25 +622,26 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
             paymentUrl,
             '',
             'You will receive final confirmation after successful payment.',
-          ].join('\n')
+          ].join('\n'),
+          channel
         )
-        await clearSession(phone)
+        await clearSession(phone, channel)
         return
       }
 
       if (input.toUpperCase() === 'NO') {
-        await sendWhatsAppMessage(phone, 'Order cancelled. Send anything to start again.')
-        await clearSession(phone)
+        await sendMessage(phone, 'Order cancelled. Send anything to start again.', channel)
+        await clearSession(phone, channel)
         return
       }
 
-      await sendWhatsAppMessage(phone, 'Please reply YES to confirm or NO to cancel.')
+      await sendMessage(phone, 'Please reply YES to confirm or NO to cancel.', channel)
       return
     }
 
-    await sendMenu(phone)
+    await sendMenu(phone, channel)
   } catch (error) {
-    console.error('[whatsapp] handleIncomingMessage failed', error)
-    await sendWhatsAppMessage(phone, 'Something went wrong, please try again')
+    console.error(`[${channel}] handleIncomingMessage failed`, error)
+    await sendMessage(phone, 'Something went wrong, please try again', channel)
   }
 }

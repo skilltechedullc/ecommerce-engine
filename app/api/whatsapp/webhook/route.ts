@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<Response> {
     const text = message.text?.body?.trim()
     if (!phone || !text) return new Response('OK', { status: 200 })
 
-    await handleIncomingMessage(phone, text)
+    await handleIncomingMessage(phone, text, 'whatsapp')
     return new Response('OK', { status: 200 })
   } catch (error) {
     console.error('[whatsapp] webhook POST failed', error)

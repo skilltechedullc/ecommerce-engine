@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import RouteChrome from '@/components/RouteChrome'
+import AiChatWidgetMount from '@/components/AiChatWidgetMount'
 import { storeConfig } from '@/lib/config'
 import { tenantConfig } from '@/lib/tenant.config'
 
@@ -76,6 +77,7 @@ export default function RootLayout({
         }}
       >
         <RouteChrome>{children}</RouteChrome>
+        {tenantConfig.features.aiChat ? <AiChatWidgetMount /> : null}
       </body>
     </html>
   )

@@ -5,6 +5,7 @@
 }
 
 :root {
+  --color-primary: var(--tenant-primary);
   --admin-bg: #f3f6fb;
   --admin-surface: rgba(255, 255, 255, 0.92);
   --admin-surface-strong: #ffffff;

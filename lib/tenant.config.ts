@@ -281,7 +281,7 @@ export const tenantConfig: TenantConfig = {
   },
   features: {
     whatsappBot: envBoolean('NEXT_PUBLIC_FEATURE_WHATSAPP_BOT', false),
-    aiChat: envBoolean('NEXT_PUBLIC_FEATURE_AI_CHAT', false),
+    aiChat: envBoolean('NEXT_PUBLIC_FEATURE_AI_CHAT', true),
     instagramSync: envBoolean('NEXT_PUBLIC_FEATURE_INSTAGRAM_SYNC', false),
     loyaltyPoints: envBoolean('NEXT_PUBLIC_FEATURE_LOYALTY_POINTS', false),
     abandonedCartRecovery: envBoolean('NEXT_PUBLIC_FEATURE_ABANDONED_CART_RECOVERY', false),

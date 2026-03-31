@@ -40,6 +40,7 @@ export default function AdminChrome({ children }: { children: React.ReactNode })
   const pathname = usePathname() ?? '/admin'
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const workspaceHost = storeConfig.siteUrl.replace(/^https?:\/\//, '')
 
   const pageMeta = useMemo(() => {
     return PAGE_TITLES.find((entry) => entry.match.test(pathname)) ?? PAGE_TITLES[0]
@@ -109,7 +110,7 @@ export default function AdminChrome({ children }: { children: React.ReactNode })
 
         <div className="admin-sidebar__footer">
           <p className="admin-sidebar__footerLabel">Workspace</p>
-          <p className="admin-sidebar__footerValue">{storeConfig.siteUrl.replace(/^https?:\/\//, '')}</p>
+          <p className="admin-sidebar__footerValue">{workspaceHost}</p>
         </div>
       </aside>
 

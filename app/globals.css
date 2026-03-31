@@ -79,16 +79,17 @@ body.minicart-open .whatsAppFloatingButton {
   display: flex;
   flex-direction: column;
   gap: 22px;
-  background: var(--admin-sidebar);
-  color: #effaf7;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #0c3f2f 0%, #082f23 58%, #06261c 100%);
+  color: #f3fbf8;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .admin-sidebar__brand,
 .admin-sidebar__footer {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
   border-radius: 22px;
   padding: 18px;
 }
@@ -103,7 +104,7 @@ body.minicart-open .whatsAppFloatingButton {
 }
 
 .admin-sidebar__eyebrow {
-  color: rgba(215, 249, 239, 0.7);
+  color: rgba(233, 255, 250, 0.95);
   margin-bottom: 14px;
 }
 
@@ -136,6 +137,7 @@ body.minicart-open .whatsAppFloatingButton {
   font-size: 17px;
   font-weight: 700;
   color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 }
 
 .admin-sidebar__subtitle,
@@ -147,6 +149,16 @@ body.minicart-open .whatsAppFloatingButton {
 .admin-tableProduct__meta,
 .admin-emptyState p {
   color: rgba(226, 232, 240, 0.74);
+}
+
+.admin-sidebar .admin-sidebar__subtitle,
+.admin-sidebar .admin-sidebar__footerLabel,
+.admin-sidebar .admin-nav__description {
+  color: rgba(241, 255, 251, 0.94);
+}
+
+.admin-sidebar .admin-sidebar__footerValue {
+  color: #ffffff;
 }
 
 .admin-sidebar__subtitle,
@@ -184,17 +196,17 @@ body.minicart-open .whatsAppFloatingButton {
   align-items: flex-start;
   padding: 14px 16px;
   border-radius: 18px;
-  color: rgba(239, 250, 247, 0.82);
+  color: #f7fffc;
   text-decoration: none;
   transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
 }
 
 .admin-nav__link:hover,
 .admin-nav__link.is-active {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.24);
   color: #ffffff;
   transform: translateX(2px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .admin-nav__icon {
@@ -204,7 +216,7 @@ body.minicart-open .whatsAppFloatingButton {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.22);
   flex-shrink: 0;
 }
 

@@ -18,7 +18,6 @@ type ChatRequestBody = {
 
 type ProductVariantRow = {
   id: string
-  name: string | null
   weight: string | null
   price: number | null
   stock: number | null
@@ -147,7 +146,7 @@ function formatCatalog(products: ProductRow[]): string {
   return products
     .map((product) => {
       const variants = (product.product_variants ?? []).map((variant, index) => {
-        const variantLabel = variant.weight || variant.name || `Variant ${index + 1}`
+        const variantLabel = variant.weight || `Variant ${index + 1}`
         const stock = typeof variant.stock === 'number' && variant.stock > 0
           ? `in stock (${variant.stock})`
           : 'currently unavailable'
@@ -213,19 +212,25 @@ function buildSystemPrompt(catalogText: string): string {
   ].join('\n')
 }
 
-async function fetchCatalog(): Promise<ProductRow[]> {
-  const supabase = getSupabaseAdmin()
-  const { data, error } = await supabase
-    .from('products')
-    .select('id, name, description, is_active, product_variants(id, name, weight, price, stock)')
-    .eq('is_active', true)
-    .order('name', { ascending: true })
+async function fetchCatalog(): Promise<{ products: ProductRow[]; loadError: boolean }> {
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, description, is_active, product_variants(id, weight, price, stock)')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
 
-  if (error) {
-    throw new HttpError(500, 'Failed to fetch catalog', 'DB_FETCH_FAILED')
+    if (error) {
+      console.error('Supabase catalog fetch error:', error)
+      return { products: [], loadError: true }
+    }
+
+    return { products: (data ?? []) as ProductRow[], loadError: false }
+  } catch (err) {
+    console.error('Catalog fetch exception:', err)
+    return { products: [], loadError: true }
   }
-
-  return (data ?? []) as ProductRow[]
 }
 
 function jsonError(message: string, status: number, code: string, details?: unknown) {
@@ -266,8 +271,10 @@ export async function POST(req: Request): Promise<Response> {
       )
     }
 
-    const products = await fetchCatalog()
-    const catalogText = formatCatalog(products)
+    const { products, loadError } = await fetchCatalog()
+    const catalogText = loadError
+      ? 'Product catalog is temporarily unavailable. Please direct customers to contact us via WhatsApp or email for product availability and pricing information.'
+      : formatCatalog(products)
     const systemPrompt = buildSystemPrompt(catalogText)
 
     const anthropic = new Anthropic({ apiKey: anthropicApiKey })

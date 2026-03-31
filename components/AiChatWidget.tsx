@@ -3,6 +3,8 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import styles from '@/components/AiChatWidget.module.css'
+import { tenantConfig } from '@/lib/tenant.config'
+
 
 type ChatRole = 'user' | 'assistant'
 
@@ -34,14 +36,14 @@ function createMessage(role: ChatRole, content: string): ChatMessage {
 
 export default function AiChatWidget() {
   const pathname = usePathname()
-  const brandName = process.env.NEXT_PUBLIC_BRAND_NAME?.trim() || 'Our Store'
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || ''
+  const brandShort = tenantConfig.branding.shortName
+  const whatsappNumber = tenantConfig.contact.whatsappNumber
   const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : ''
 
   const welcomeMessage = useMemo(
     () =>
-      `Hi! I am ${brandName} AI assistant. Ask me anything about our products, shipping, or how to order!`,
-    [brandName]
+      `Hi! I'm your ${brandShort} AI assistant. Ask me anything about our products, shipping, or how to order! 🌿`,
+    [brandShort]
   )
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
@@ -54,13 +56,45 @@ export default function AiChatWidget() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const panelRef = useRef<HTMLElement | null>(null)
 
-  const isLifted = pathname === '/cart' || pathname === '/checkout'
+  const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout'
+  const hasWhatsAppFloating = Boolean(whatsappNumber) && !isCartOrCheckout
+  const isLifted = isCartOrCheckout || hasWhatsAppFloating
   const showQuickReplies = messages.length === 1 && messages[0]?.role === 'assistant'
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) setIsOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+      if (panelRef.current?.contains(target)) return
+      if (rootRef.current?.contains(target)) return
+      setIsOpen(false)
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('touchstart', onPointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('touchstart', onPointerDown)
+    }
+  }, [isOpen])
 
   const resetTextareaHeight = () => {
     if (!textareaRef.current) return
@@ -240,129 +274,146 @@ export default function AiChatWidget() {
   }
 
   return (
-    <div className={`${styles.root} ${isLifted ? styles.lifted : ''}`}>
-      {!isOpen ? (
-        <button
-          type="button"
-          className={styles.fab}
-          aria-label="Open AI chat assistant"
-          onClick={() => setIsOpen(true)}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.fabIcon}>
-            <path
-              d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4.2 3.4a.5.5 0 0 1-.8-.4V5.5Z"
-              fill="currentColor"
-            />
-          </svg>
-        </button>
-      ) : (
-        <section className={styles.panel} aria-label="AI chat panel">
-          <header className={styles.header}>
-            <div>
-              <h2 className={styles.title}>{brandName}</h2>
-              <p className={styles.subtitle}>AI Store Assistant</p>
-            </div>
-            <button
-              type="button"
-              className={styles.closeButton}
-              aria-label="Close chat"
-              onClick={() => setIsOpen(false)}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.closeIcon}>
-                <path
-                  d="M6.7 5.3a1 1 0 0 0-1.4 1.4L10.6 12l-5.3 5.3a1 1 0 1 0 1.4 1.4l5.3-5.3 5.3 5.3a1 1 0 1 0 1.4-1.4L13.4 12l5.3-5.3a1 1 0 1 0-1.4-1.4L12 10.6 6.7 5.3Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          </header>
-
-          <div className={styles.messages}>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`${styles.messageRow} ${
-                  message.role === 'user' ? styles.messageRowUser : styles.messageRowAssistant
-                }`}
+    <>
+      <div ref={rootRef} className={`${styles.root} ${isLifted ? styles.lifted : ''}`}>
+        {!isOpen ? (
+          <button
+            type="button"
+            className={styles.fab}
+            aria-label="Open AI chat assistant"
+            onClick={() => setIsOpen(true)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.fabIcon}>
+              <path
+                d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-4.2 3.4a.5.5 0 0 1-.8-.4V5.5Z"
+                fill="currentColor"
+              />
+            </svg>
+            <span className={styles.fabLabel}>AI Chat</span>
+          </button>
+        ) : (
+          <section ref={panelRef} className={styles.panel} aria-label="AI chat panel">
+            <header className={styles.header}>
+              <div className={styles.headerLeft}>
+                <div className={styles.headerAvatar}>AI</div>
+                <div>
+                  <h2 className={styles.title}>{brandShort} Assistant</h2>
+                  <p className={styles.subtitle}>
+                    <span className={styles.onlineDot} />
+                    Online · Ready to help
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                aria-label="Close chat"
+                onClick={() => setIsOpen(false)}
               >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.closeIcon}>
+                  <path
+                    d="M6.7 5.3a1 1 0 0 0-1.4 1.4L10.6 12l-5.3 5.3a1 1 0 1 0 1.4 1.4l5.3-5.3 5.3 5.3a1 1 0 1 0 1.4-1.4L13.4 12l5.3-5.3a1 1 0 1 0-1.4-1.4L12 10.6 6.7 5.3Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </header>
+
+            <div className={styles.messages}>
+              {messages.map((message) => (
                 <div
-                  className={`${styles.messageBubble} ${
-                    message.role === 'user' ? styles.userBubble : styles.assistantBubble
+                  key={message.id}
+                  className={`${styles.messageRow} ${
+                    message.role === 'user' ? styles.messageRowUser : styles.messageRowAssistant
                   }`}
                 >
-                  {message.content}
-                </div>
-              </div>
-            ))}
-
-            {showQuickReplies ? (
-              <div className={styles.quickReplies}>
-                {QUICK_REPLIES.map((reply) => (
-                  <button
-                    key={reply}
-                    type="button"
-                    className={styles.quickReplyChip}
-                    onClick={() => void handleQuickReply(reply)}
-                    disabled={isLoading || (reply === 'Talk to a person' && !whatsappUrl)}
-                  >
-                    {reply}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            {isLoading ? (
-              <div className={`${styles.messageRow} ${styles.messageRowAssistant}`}>
-                <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
-                  <div className={styles.typingDots} aria-label="Assistant is typing">
-                    <span />
-                    <span />
-                    <span />
+                  <div className={styles.messageGroup}>
+                    <span className={styles.messageSender}>
+                      {message.role === 'user' ? 'You' : `${brandShort} AI`}
+                    </span>
+                    <div
+                      className={`${styles.messageBubble} ${
+                        message.role === 'user' ? styles.userBubble : styles.assistantBubble
+                      }`}
+                    >
+                      {message.content}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
 
-          <form className={styles.inputArea} onSubmit={handleSubmit}>
-            {isUnavailable ? (
-              <p className={styles.unavailableText}>
-                Chat is temporarily unavailable. Please use WhatsApp for immediate support.
-              </p>
-            ) : null}
-            <textarea
-              ref={textareaRef}
-              className={styles.input}
-              placeholder="Ask anything..."
-              value={input}
-              onChange={(event) => {
-                setInput(event.target.value)
-                adjustTextareaHeight()
-              }}
-              onKeyDown={(event) => {
-                void handleTextareaKeyDown(event)
-              }}
-              rows={1}
-              maxLength={1000}
-              disabled={isLoading || isUnavailable}
-            />
-            <button
-              type="submit"
-              className={styles.sendButton}
-              aria-label="Send message"
-              disabled={!input.trim() || isLoading || isUnavailable}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.sendIcon}>
-                <path
-                  d="M3.4 11.4 19 4.5a1 1 0 0 1 1.4 1.2l-3.3 12a1 1 0 0 1-1.5.6l-4.2-2.6-2.9 2.9a1 1 0 0 1-1.7-.7v-3.8L3.6 13a1 1 0 0 1-.2-1.6Zm3.8.8 3.1 1.1a1 1 0 0 1 .6.6l1.1 3.1 1.5-1.5a1 1 0 0 1 1.2-.1l2.4 1.5 2.4-8.9-11.4 5.1Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
-          </form>
-        </section>
-      )}
-    </div>
+              {showQuickReplies ? (
+                <div className={styles.quickReplies}>
+                  {QUICK_REPLIES.map((reply) => (
+                    <button
+                      key={reply}
+                      type="button"
+                      className={styles.quickReplyChip}
+                      onClick={() => void handleQuickReply(reply)}
+                      disabled={isLoading || (reply === 'Talk to a person' && !whatsappUrl)}
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {isLoading ? (
+                <div className={`${styles.messageRow} ${styles.messageRowAssistant}`}>
+                  <div className={styles.messageGroup}>
+                    <span className={styles.messageSender}>{brandShort} AI</span>
+                    <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
+                      <div className={styles.typingDots} aria-label="Assistant is typing">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form className={styles.inputArea} onSubmit={handleSubmit}>
+              {isUnavailable ? (
+                <p className={styles.unavailableText}>
+                  Chat is temporarily unavailable. Please use WhatsApp for immediate support.
+                </p>
+              ) : null}
+              <textarea
+                ref={textareaRef}
+                className={styles.input}
+                placeholder="Ask anything..."
+                value={input}
+                onChange={(event) => {
+                  setInput(event.target.value)
+                  adjustTextareaHeight()
+                }}
+                onKeyDown={(event) => {
+                  void handleTextareaKeyDown(event)
+                }}
+                rows={1}
+                maxLength={1000}
+                disabled={isLoading || isUnavailable}
+              />
+              <button
+                type="submit"
+                className={styles.sendButton}
+                aria-label="Send message"
+                disabled={!input.trim() || isLoading || isUnavailable}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.sendIcon}>
+                  <path
+                    d="M3.4 11.4 19 4.5a1 1 0 0 1 1.4 1.2l-3.3 12a1 1 0 0 1-1.5.6l-4.2-2.6-2.9 2.9a1 1 0 0 1-1.7-.7v-3.8L3.6 13a1 1 0 0 1-.2-1.6Zm3.8.8 3.1 1.1a1 1 0 0 1 .6.6l1.1 3.1 1.5-1.5a1 1 0 0 1 1.2-.1l2.4 1.5 2.4-8.9-11.4 5.1Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </form>
+          </section>
+        )}
+      </div>
+    </>
   )
 }

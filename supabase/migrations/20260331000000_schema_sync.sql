@@ -8,9 +8,23 @@ alter table if exists public.whatsapp_sessions
 alter table if exists public.product_variants
   add column if not exists weight text;
 
-update public.product_variants
-set weight = coalesce(weight, name)
-where weight is null;
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'product_variants'
+      and column_name = 'name'
+  ) then
+    execute $sql$
+      update public.product_variants
+      set weight = coalesce(weight, name)
+      where weight is null
+    $sql$;
+  end if;
+end
+$$;
 
 -- Product variants: app code stores image collections, but the base schema created image as text.
 do $$

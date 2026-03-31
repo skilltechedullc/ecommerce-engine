@@ -38,4 +38,4 @@ drop trigger if exists whatsapp_sessions_set_updated_at on public.whatsapp_sessi
 create trigger whatsapp_sessions_set_updated_at
   before update on public.whatsapp_sessions
   for each row
-  execute function moddatetime(updated_at);
+  execute function extensions.moddatetime(updated_at);

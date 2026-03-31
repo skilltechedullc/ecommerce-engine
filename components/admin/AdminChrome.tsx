@@ -40,7 +40,7 @@ export default function AdminChrome({ children }: { children: React.ReactNode })
   const pathname = usePathname() ?? '/admin'
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const workspaceHost = storeConfig.siteUrl.replace(/^https?:\/\//, '')
+  const workspaceHost = (process.env.NEXT_PUBLIC_SITE_URL ?? storeConfig.siteUrl).replace(/^https?:\/\//, '')
 
   const pageMeta = useMemo(() => {
     return PAGE_TITLES.find((entry) => entry.match.test(pathname)) ?? PAGE_TITLES[0]

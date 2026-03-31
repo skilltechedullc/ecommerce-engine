@@ -15,12 +15,12 @@ type DashboardOrder = {
   total_amount: number | null
   created_at: string | null
   status: string | null
-  payment_method?: string | null
+  customer_address?: string | null
   order_items?: OrderItem[] | null
 }
 
 type ChannelOrderRow = {
-  payment_method: string | null
+  customer_address: string | null
   total_amount: number | null
 }
 
@@ -44,33 +44,29 @@ function shortDayLabel(date: Date) {
   return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short' })
 }
 
+function isLikelyWhatsAppOrder(address: string | null): boolean {
+  if (!address) return false
+  const normalized = address.toLowerCase()
+  return (
+    normalized.includes('whatsapp')
+    || normalized.includes('wa.me')
+    || normalized.includes('w/a')
+    || normalized.includes('via whatsapp')
+  )
+}
+
 export default async function AdminDashboard() {
-  const { orders } = await fetchInternalApi<{
-    orders: DashboardOrder[]
-  }>('/api/orders/list')
-
   const supabase = getSupabaseAdmin()
-
-  const { data: channelRows, error: channelError } = await supabase
-    .from('orders')
-    .select('payment_method, total_amount')
-
-  if (channelError) {
-    throw new Error(`Failed to load channel analytics: ${channelError.message}`)
+  let safeOrders: DashboardOrder[] = []
+  try {
+    const { orders } = await fetchInternalApi<{
+      orders: DashboardOrder[]
+    }>('/api/orders/list')
+    safeOrders = orders ?? []
+  } catch (error) {
+    console.error('Dashboard orders fetch failed:', error)
+    safeOrders = []
   }
-
-  const { data: lowStockRows, error: lowStockError } = await supabase
-    .from('product_variants')
-    .select('id, product_id, stock, weight, products!inner(id, name, is_active)')
-    .lte('stock', 10)
-    .eq('products.is_active', true)
-    .order('stock', { ascending: true })
-
-  if (lowStockError) {
-    throw new Error(`Failed to load low stock data: ${lowStockError.message}`)
-  }
-
-  const safeOrders = orders ?? []
   const totalOrders = safeOrders.length
   const totalRevenue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
 
@@ -109,9 +105,24 @@ export default async function AdminDashboard() {
     }
   }
 
-  const channelData = (channelRows ?? []) as ChannelOrderRow[]
-  const whatsappOrders = channelData.filter((row) => row.payment_method === 'whatsapp_cod')
-  const webOrders = channelData.filter((row) => row.payment_method !== 'whatsapp_cod')
+  let channelData: ChannelOrderRow[] = []
+  try {
+    const { data: channelRows, error: channelError } = await supabase
+      .from('orders')
+      .select('customer_address, total_amount')
+
+    if (channelError) {
+      throw channelError
+    }
+
+    channelData = (channelRows ?? []) as ChannelOrderRow[]
+  } catch (error) {
+    console.error('Failed to load channel analytics:', error)
+    channelData = []
+  }
+
+  const whatsappOrders = channelData.filter((row) => isLikelyWhatsAppOrder(row.customer_address))
+  const webOrders = channelData.filter((row) => !isLikelyWhatsAppOrder(row.customer_address))
   const whatsappOrdersCount = whatsappOrders.length
   const webOrdersCount = webOrders.length
   const whatsappRevenue = whatsappOrders.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
@@ -120,9 +131,27 @@ export default async function AdminDashboard() {
   const webPercent = totalChannelOrders > 0 ? (webOrdersCount / totalChannelOrders) * 100 : 0
   const whatsappPercent = totalChannelOrders > 0 ? (whatsappOrdersCount / totalChannelOrders) * 100 : 0
 
-  const lowStockVariants = ((lowStockRows ?? []) as LowStockVariantRow[]).filter(
-    (variant) => Number(variant.stock ?? 0) <= 10
-  )
+  let lowStockVariants: LowStockVariantRow[] = []
+  try {
+    const { data: lowStockRows, error: lowStockError } = await supabase
+      .from('product_variants')
+      .select('id, product_id, stock, weight, products!inner(id, name, is_active)')
+      .lte('stock', 10)
+      .eq('products.is_active', true)
+      .order('stock', { ascending: true })
+
+    if (lowStockError) {
+      throw lowStockError
+    }
+
+    lowStockVariants = ((lowStockRows ?? []) as LowStockVariantRow[]).filter(
+      (variant) => Number(variant.stock ?? 0) <= 10
+    )
+  } catch (error) {
+    console.error('Failed to load low stock data:', error)
+    lowStockVariants = []
+  }
+
   const lowStockPreview = lowStockVariants.slice(0, 5)
 
   const todayStr = new Date().toISOString().slice(0, 10)

@@ -17,7 +17,7 @@ function getServerSnapshot(): CartItem[] {
 
 const NAV_ITEMS = [
   { href: '/products', label: 'Shop' },
-  { href: '/#story', label: 'Our Story' },
+  { href: '/#story', label: 'About' },
   { href: '/#contact', label: 'Contact' },
 ] as const
 
@@ -66,11 +66,12 @@ export default function Header() {
             <Image
               src={storeConfig.logoUrl}
               alt={storeConfig.brandName}
-              width={148}
-              height={53}
+              width={40}
+              height={40}
               priority
               className={styles.brandLogo}
             />
+            <span className={styles.brandName}>{storeConfig.brandName}</span>
           </Link>
 
           <nav className={styles.desktopNav}>
@@ -129,7 +130,7 @@ export default function Header() {
         </div>
       </header>
 
-      <div className={`${styles.mobileSheet} ${menuOpen ? styles.mobileSheetOpen : ''}`} aria-hidden={!menuOpen}>
+      <div className={`${styles.mobileSheet} ${menuOpen ? styles.mobileSheetOpen : ''}`} aria-hidden={!menuOpen} inert={!menuOpen}>
         <div className={styles.mobileOverlay} onClick={() => setMenuOpen(false)} />
         <div className={styles.mobilePanel} role="dialog" aria-modal="true" aria-label="Mobile navigation">
           <div className={styles.mobileHeader}>

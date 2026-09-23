@@ -349,3 +349,5 @@
     text-align: left;
   }
 }
+
+.page{background:#fbfaf7}.heroCard{background:transparent;border:0;box-shadow:none;padding:16px 0 28px}.kicker{border:0;padding:0;letter-spacing:.12em}.controlsBand{border-radius:12px;box-shadow:none;padding:20px;margin-bottom:28px}.heroCard h1{font-weight:600}.grid{gap:24px}

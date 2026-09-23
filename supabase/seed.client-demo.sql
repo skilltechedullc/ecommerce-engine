@@ -17,7 +17,7 @@ with products_seed as (
     (
       'Demo Coconut Oil',
       'demo-coconut-oil',
-      'A sample grocery product used to verify storefront, cart, checkout, and admin workflows.',
+      'An everyday cooking staple. Explore our sample 500 ml bottle.',
       '/logo.svg',
       'Grocery',
       'Cooking Oil',
@@ -28,7 +28,7 @@ with products_seed as (
     (
       'Demo Honey',
       'demo-honey',
-      'A sample natural product for validating product detail and variant flows.',
+      'A little sweetness for your pantry. Explore our sample 250 g jar.',
       '/logo.svg',
       'Grocery',
       'Honey',
@@ -39,7 +39,7 @@ with products_seed as (
     (
       'Demo Rice Pack',
       'demo-rice-pack',
-      'A sample staple product for grocery catalog testing.',
+      'A pantry essential for everyday meals. Explore our sample 5 kg pack.',
       '/logo.svg',
       'Grocery',
       'Staples',

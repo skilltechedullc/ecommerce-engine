@@ -48,11 +48,11 @@ export default function RootLayout({
     '--tenant-admin-sidebar-start': tenantConfig.branding.colors.adminSidebarGradientStart,
     '--tenant-admin-sidebar-end': tenantConfig.branding.colors.adminSidebarGradientEnd,
     '--font-geist': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    '--font-playfair': 'Georgia, "Times New Roman", serif',
+    '--font-playfair': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   } as React.CSSProperties
 
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body
         style={{
           ...tenantCssVariables,

@@ -230,6 +230,8 @@ export default function MiniCartDrawer() {
         className={`${styles.drawer} ${open ? styles.drawerOpen : ''} ${isDragging ? styles.drawerDragging : ''}`}
         style={open ? { transform: `translateX(${dragOffset}px)` } : undefined}
         role="dialog"
+        aria-hidden={!open}
+        inert={!open}
         aria-modal="true"
         aria-label="Your cart"
         onTouchStart={handleTouchStart}

@@ -10,12 +10,12 @@ type CopyVariantKey = 'trust' | 'urgency'
 
 const COPY_VARIANTS: Record<CopyVariantKey, { title: string; description: string }> = {
   trust: {
-    title: 'Browse certified natural foods with premium quality standards.',
-    description: 'Certified oils and natural staples crafted for clean everyday cooking.',
+    title: 'Find your everyday essentials.',
+    description: 'Explore the collection. Choose your size, compare prices, and find a favourite.',
   },
   urgency: {
-    title: 'Clean essentials for your next kitchen refill.',
-    description: 'Natural, chemical-free essentials for your next kitchen refill.',
+    title: 'Find your everyday essentials.',
+    description: 'Explore the collection. Choose your size, compare prices, and find a favourite.',
   },
 }
 
@@ -93,24 +93,7 @@ export default async function ProductsPage({
             <span className={styles.kicker}>{tenantConfig.marketing.products.heroKicker}</span>
             <h1>{heroCopy.title}</h1>
             <p>{heroCopy.description}</p>
-            <div className={styles.stats}>
-              <div className={styles.stat}>
-                <strong>FSSAI</strong>
-                <span>Certified quality</span>
-              </div>
-              <div className={styles.stat}>
-                <strong>HACCP</strong>
-                <span>Safety process</span>
-              </div>
-              <div className={styles.stat}>
-                <strong>GMP</strong>
-                <span>Clean production</span>
-              </div>
-              <div className={styles.stat}>
-                <strong>Clean</strong>
-                <span>Chemical-free</span>
-              </div>
-            </div>
+
           </div>
         </section>
 
@@ -124,7 +107,7 @@ export default async function ProductsPage({
                 id="product-search"
                 name="q"
                 defaultValue={activeQuery}
-                placeholder="Search honey, oil, coconut..."
+                placeholder="Search the collection..."
               />
               <button type="submit">Search</button>
             </div>
@@ -179,7 +162,7 @@ export default async function ProductsPage({
           ) : null}
         </div>
 
-        {popularProducts.length > 0 ? (
+        {popularProducts.length > 0 && totalProducts > 8 && !activeQuery && !activeCategory ? (
           <section id="popular-picks" className={styles.featuredSection}>
             <div className={styles.featuredHeader}>
               <div>

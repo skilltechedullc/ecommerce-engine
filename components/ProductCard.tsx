@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useState, type MouseEvent } from 'react'
 import { addToCart, emitCartUpdated } from '@/lib/cart'
 import { moneyWithSymbol } from '@/lib/money'
+import { resolveDemoImage } from '@/lib/catalogMedia'
+import { storeConfig } from '@/lib/config'
 import styles from './ProductCard.module.css'
 
 export type Product = {
@@ -112,7 +114,7 @@ export default function ProductCard({
         <div className={styles.media}>
           {product.image ? (
             <Image
-              src={product.image}
+              src={resolveDemoImage(product.image, product.slug)!}
               alt={product.name}
               fill
               unoptimized
@@ -121,7 +123,7 @@ export default function ProductCard({
           ) : (
             <div className={styles.placeholderArt} data-tone={placeholderTone} aria-hidden="true">
               <div className={styles.placeholderPack}>
-                <span className={styles.placeholderBrand}>millco</span>
+                <span className={styles.placeholderBrand}>{storeConfig.brandName}</span>
                 <strong>{product.name}</strong>
                 <span>{product.category ?? 'Natural Foods'}</span>
               </div>

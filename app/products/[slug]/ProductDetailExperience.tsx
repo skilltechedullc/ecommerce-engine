@@ -122,7 +122,7 @@ export default function ProductDetailExperience({
               />
             </div>
             <div className={styles.brandMeta}>
-              <span>Certified Brand</span>
+              <span>From the store</span>
               <strong>{brandName}</strong>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function ProductDetailExperience({
         <section className={styles.trustCard}>
           <h2>{tenantConfig.marketing.productDetail.trustHeading}</h2>
           <div className={styles.trustList}>
-            {[...tenantConfig.marketing.productDetail.trustItems, `Carefully packed by ${brandName}`].map((text) => (
+            {tenantConfig.marketing.productDetail.trustItems.map((text) => (
               <div key={text} className={styles.trustItem}>
                 <span className={styles.trustItemDot} aria-hidden="true" />
                 <span>{text}</span>

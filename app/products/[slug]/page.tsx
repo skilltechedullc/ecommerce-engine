@@ -4,7 +4,7 @@ import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import type { Metadata } from 'next'
 import { storeConfig } from '@/lib/config'
-import { mergeImageSources, normalizeImageValue } from '@/lib/catalogMedia'
+import { mergeImageSources, normalizeImageValue, resolveDemoImage } from '@/lib/catalogMedia'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
 import { tenantConfig } from '@/lib/tenant.config'
 import ProductDetailExperience from './ProductDetailExperience'
@@ -74,7 +74,7 @@ export default async function Page({
       const relationImages = ((variant as { variant_images?: Array<{ image_url: string; sort_order: number }> }).variant_images ?? [])
         .sort((left, right) => left.sort_order - right.sort_order)
         .map((item) => item.image_url)
-      return relationImages.length > 0 ? relationImages : normalizeImageValue((variant as { image?: unknown }).image)
+      return (relationImages.length > 0 ? relationImages : normalizeImageValue((variant as { image?: unknown }).image)).map(image => resolveDemoImage(image, slug)!)
     })(),
   }))
   const productGallery = mergeImageSources(
@@ -82,7 +82,7 @@ export default async function Page({
       .sort((left, right) => left.sort_order - right.sort_order)
       .map((item) => item.image_url),
     product.image,
-  )
+  ).map(image => resolveDemoImage(image, slug)!)
   const productCover = productGallery[0] ?? null
   const variantForSchema = safeVariants[0]
 

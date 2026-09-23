@@ -179,9 +179,9 @@ export default function VariantSelector({
       </button>
 
       <div className={styles.trustStrip}>
-        <span>Certified Product</span>
-        <span>No Chemicals</span>
-        <span>Quality Assurance</span>
+        <span>Clear pricing</span>
+        <span>Secure checkout</span>
+        <span>Order confirmation</span>
       </div>
 
       <div className={styles.stickySpacer} aria-hidden="true" />

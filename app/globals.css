@@ -1085,3 +1085,15 @@ body.minicart-open .whatsAppFloatingButton {
     width: 100%;
   }
 }
+
+/* Shared readable type and restrained surfaces. */
+body { font-size:16px; line-height:1.5; }
+:focus-visible { outline:3px solid #497b62; outline-offset:4px; }
+button,a,input,select,textarea { -webkit-tap-highlight-color:transparent; }
+.admin-shell { background:#f5f6f4; }
+.admin-sidebar { background:#173b2e; }
+:root { --admin-radius-lg:14px; --admin-radius-md:10px; --admin-shadow:0 2px 8px rgba(15,23,42,.04); --admin-shadow-soft:0 1px 4px rgba(15,23,42,.04); }
+.admin-sidebar__brand,.admin-sidebar__footer { border-radius:10px; background:transparent; backdrop-filter:none; }
+@media(prefers-reduced-motion:reduce){html {scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;animation-iteration-count:1!important}}
+
+.admin-main .admin-tableProduct__meta, .admin-main .admin-emptyState p { color: #596a61; }

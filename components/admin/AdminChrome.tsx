@@ -133,7 +133,7 @@ export default function AdminChrome({ children, role }: { children: React.ReactN
             <div className="admin-sidebar__logoMark">{initials || 'AD'}</div>
             <div>
               <p className="admin-sidebar__title">Commerce Admin</p>
-              <p className="admin-sidebar__subtitle">Premium operations hub</p>
+              <p className="admin-sidebar__subtitle">Store management</p>
             </div>
           </div>
         </div>

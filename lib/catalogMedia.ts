@@ -21,3 +21,8 @@ export function mergeImageSources(...sources: unknown[]): string[] {
 export function firstImageFromSources(...sources: unknown[]): string | null {
   return mergeImageSources(...sources)[0] ?? null
 }
+// Demo illustrations replace only the seeded logo placeholder; merchant uploads win.
+export function resolveDemoImage(image: string | null | undefined, slug: string): string | null {
+  const demos = ['demo-honey', 'demo-coconut-oil', 'demo-rice-pack']
+  return image === '/logo.svg' && demos.includes(slug) ? '/demo/' + slug + '.svg' : image ?? null
+}

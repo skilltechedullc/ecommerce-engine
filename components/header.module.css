@@ -267,3 +267,13 @@
   font-size: 13px;
   line-height: 1.7;
 }
+
+/* Quiet, compact storefront navigation. */
+.header { background: rgba(255,255,255,.97); }
+.brand { gap: 12px; }
+.brandLogo { width: 40px; height: 40px; object-fit: contain; }
+.brandName { font-size: 19px; font-weight: 650; letter-spacing: -.04em; color: var(--tenant-primary); }
+.navLink { font-size: 14px; letter-spacing: 0; text-transform: none; font-weight: 550; }
+.navCta { background: transparent; color: var(--tenant-primary); box-shadow: none; padding: 0; }
+.cartButton, .menuButton { min-width: 44px; min-height: 44px; border-radius: 10px; box-shadow: none; }
+@media(max-width:640px) { .brandLogo { width: 34px; height: 34px; } .brandName { font-size: 17px; } }

@@ -338,3 +338,7 @@
     min-height: 46px;
   }
 }
+
+.card{border-radius:12px;box-shadow:none;border:1px solid #e1e5df;background:white}.card:hover{box-shadow:0 8px 24px rgba(24,52,37,.07);transform:translateY(-2px)}.media{background:#f0eee6}.title{font-size:19px;font-weight:600;letter-spacing:-.025em}.description{color:#607068;line-height:1.6}.price{font-family:var(--font-geist);font-weight:650}.category{background:rgba(255,255,255,.93);color:#344c3e;font-size:10px;letter-spacing:.05em}.quickAddButton{background:var(--tenant-primary);border-radius:8px;box-shadow:none;text-transform:none;font-size:14px;letter-spacing:0}.detailCta{font-size:11px;letter-spacing:0;text-transform:none}.bestSellerBadge{background:#e6eee6;color:#234a34}.lowStockBadge{top:48px}
+
+.card { display:flex; flex-direction:column; }.cardLink { flex:1; display:flex; flex-direction:column; }.content { flex:1; display:flex; flex-direction:column; }.footer { margin-top:auto; padding-top:18px; }.description { min-height:3.2em; }.quickAddButton:not(:disabled) { background:var(--tenant-primary); box-shadow:none; }.quickAddButton:not(:disabled):hover { background:var(--tenant-primary-dark); }

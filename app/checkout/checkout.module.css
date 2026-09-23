@@ -423,6 +423,10 @@
     box-shadow: 0 -4px 24px rgba(16, 63, 44, 0.1);
     z-index: 50;
   }
+
+  .page {
+    padding-bottom: calc(170px + env(safe-area-inset-bottom));
+  }
 }
 
 .mobileStickyLeft {
@@ -507,7 +511,7 @@
   }
 
   .page {
-    padding-bottom: 140px;
+    padding-bottom: calc(170px + env(safe-area-inset-bottom));
   }
 }
 

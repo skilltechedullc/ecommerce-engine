@@ -1,6 +1,8 @@
-import { NextRequest } from 'next/server'
+import { after, NextRequest } from 'next/server'
 import crypto from 'crypto'
+import Razorpay from 'razorpay'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { storeConfig } from '@/lib/config'
 import { notifyOrderPlaced } from '@/lib/server/notifications'
 import {
   HttpError,
@@ -12,7 +14,20 @@ import {
   withApiHandler,
 } from '@/lib/server/api'
 import { env } from '@/lib/server/env'
+import {
+  CheckoutHardeningError,
+  aggregateCheckoutItems,
+  amountToPaise,
+  assertRazorpayPaymentMatches,
+} from '@/lib/server/checkoutHardening'
 import { enforceRateLimit } from '@/lib/server/rateLimit'
+import { writeAuditLog } from '@/lib/server/audit'
+import { calculateShippingRate } from '@/lib/shipping/rates'
+
+const razorpay = new Razorpay({
+  key_id: env('RAZORPAY_KEY_ID'),
+  key_secret: env('RAZORPAY_KEY_SECRET'),
+})
 
 /*
   Required Supabase tables:
@@ -58,6 +73,40 @@ type SaveOrderBody = {
   razorpay_signature?: string
   customer?: CustomerInfo
   items?: OrderItem[]
+}
+
+type CheckoutSessionRow = {
+  id: string
+  razorpay_order_id: string
+  amount_paise: number
+  subtotal_amount: number
+  shipping_amount: number
+  currency: string
+  status: string
+}
+
+type RazorpayPayment = {
+  id: string
+  order_id: string
+  amount: number
+  currency: string
+  status: string
+}
+
+type RazorpayOrder = {
+  id: string
+  amount: number
+  currency: string
+  status: string
+}
+
+type RazorpayClientWithFetch = Razorpay & {
+  payments: {
+    fetch(paymentId: string): Promise<RazorpayPayment>
+  }
+  orders: {
+    fetch(orderId: string): Promise<RazorpayOrder>
+  }
 }
 
 function validateCustomer(value: unknown): CustomerInfo {
@@ -120,6 +169,61 @@ function verifyRazorpaySignature(input: {
   }
 }
 
+async function verifyRazorpayPayment(input: {
+  razorpay_order_id: string
+  razorpay_payment_id: string
+  expectedAmountPaise: number
+  expectedCurrency: string
+}) {
+  const client = razorpay as RazorpayClientWithFetch
+  const [payment, order] = await Promise.all([
+    client.payments.fetch(input.razorpay_payment_id),
+    client.orders.fetch(input.razorpay_order_id),
+  ])
+
+  try {
+    assertRazorpayPaymentMatches({
+      razorpayOrderId: input.razorpay_order_id,
+      razorpayPaymentId: input.razorpay_payment_id,
+      expectedAmountPaise: input.expectedAmountPaise,
+      expectedCurrency: input.expectedCurrency,
+      payment,
+      order,
+    })
+  } catch (error) {
+    if (error instanceof CheckoutHardeningError) {
+      throw new HttpError(error.status, error.message, error.code, error.details)
+    }
+    throw error
+  }
+}
+
+async function updateCheckoutSession(input: {
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
+  razorpayOrderId: string
+  status: CheckoutSessionRow['status']
+  razorpayPaymentId?: string
+  orderId?: string
+  failureReason?: string | null
+}) {
+  const payload: Record<string, unknown> = {
+    status: input.status,
+  }
+
+  if (input.razorpayPaymentId) payload.razorpay_payment_id = input.razorpayPaymentId
+  if (input.orderId) payload.order_id = input.orderId
+  if (input.failureReason !== undefined) payload.failure_reason = input.failureReason
+
+  const { error } = await input.supabaseAdmin
+    .from('checkout_sessions')
+    .update(payload)
+    .eq('razorpay_order_id', input.razorpayOrderId)
+
+  if (error) {
+    throw new HttpError(500, error.message, 'DB_UPDATE_CHECKOUT_SESSION_FAILED')
+  }
+}
+
 type CanonicalOrderItem = {
   variant_id: string
   product_id: string
@@ -132,9 +236,9 @@ async function validatePricingAndStock(input: {
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
   items: OrderItem[]
 }): Promise<{ canonicalItems: CanonicalOrderItem[]; expectedTotal: number }> {
-  const variantIds = input.items.map((item) => item.variant_id)
-
-  const uniqueVariantIds = Array.from(new Set(variantIds.map((id) => String(id))))
+  const aggregatedItems = aggregateCheckoutItems(input.items)
+  const itemByVariant = new Map(aggregatedItems.map((item) => [item.variant_id, item]))
+  const uniqueVariantIds = aggregatedItems.map((item) => item.variant_id)
 
   const { data: variants, error: variantsError } = await input.supabaseAdmin
     .from('product_variants')
@@ -166,8 +270,13 @@ async function validatePricingAndStock(input: {
   const productById = new Map((products ?? []).map((p) => [String(p.id), p]))
 
   let expectedTotal = 0
-  const canonicalItems: CanonicalOrderItem[] = input.items.map((item, index) => {
-    const dbVariant = variantById.get(String(item.variant_id))
+  const canonicalItems: CanonicalOrderItem[] = uniqueVariantIds.map((variantId, index) => {
+    const item = itemByVariant.get(variantId)
+    const dbVariant = variantById.get(String(variantId))
+    if (!item) {
+      throw new HttpError(400, `items[${index}] has invalid variant`, 'VALIDATION_ERROR')
+    }
+
     if (!dbVariant) {
       throw new HttpError(400, `items[${index}] has invalid variant`, 'VALIDATION_ERROR')
     }
@@ -201,115 +310,6 @@ async function validatePricingAndStock(input: {
   return { canonicalItems, expectedTotal }
 }
 
-function aggregateVariantQuantities(items: CanonicalOrderItem[]): Array<{ variant_id: string; quantity: number }> {
-  const quantityByVariant = new Map<string, number>()
-  for (const item of items) {
-    quantityByVariant.set(
-      item.variant_id,
-      (quantityByVariant.get(item.variant_id) ?? 0) + item.quantity
-    )
-  }
-
-  return Array.from(quantityByVariant.entries()).map(([variant_id, quantity]) => ({
-    variant_id,
-    quantity,
-  }))
-}
-
-async function adjustVariantStockWithCas(input: {
-  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
-  variantId: string
-  delta: number
-}): Promise<boolean> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const { data: variant, error: fetchError } = await input.supabaseAdmin
-      .from('product_variants')
-      .select('stock')
-      .eq('id', input.variantId)
-      .maybeSingle()
-
-    if (fetchError) {
-      throw new HttpError(500, fetchError.message, 'DB_FETCH_FAILED')
-    }
-
-    if (!variant) {
-      throw new HttpError(400, 'One or more variants are invalid', 'VALIDATION_ERROR')
-    }
-
-    const currentStock = Number(variant.stock)
-    const nextStock = currentStock + input.delta
-    if (!Number.isFinite(currentStock) || nextStock < 0) {
-      return false
-    }
-
-    const { data: updated, error: updateError } = await input.supabaseAdmin
-      .from('product_variants')
-      .update({ stock: nextStock })
-      .eq('id', input.variantId)
-      .eq('stock', currentStock)
-      .select('id')
-      .maybeSingle()
-
-    if (updateError) {
-      throw new HttpError(500, updateError.message, 'DB_UPDATE_FAILED')
-    }
-
-    if (updated) {
-      return true
-    }
-  }
-
-  return false
-}
-
-async function reserveStockOrThrow(input: {
-  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
-  items: CanonicalOrderItem[]
-}): Promise<void> {
-  const reservations = aggregateVariantQuantities(input.items)
-  const reserved: Array<{ variant_id: string; quantity: number }> = []
-
-  for (const reservation of reservations) {
-    const success = await adjustVariantStockWithCas({
-      supabaseAdmin: input.supabaseAdmin,
-      variantId: reservation.variant_id,
-      delta: -reservation.quantity,
-    })
-
-    if (!success) {
-      for (const rollbackItem of reserved) {
-        await adjustVariantStockWithCas({
-          supabaseAdmin: input.supabaseAdmin,
-          variantId: rollbackItem.variant_id,
-          delta: rollbackItem.quantity,
-        }).catch(() => undefined)
-      }
-
-      throw new HttpError(
-        409,
-        'One or more items went out of stock during checkout. Please try again.',
-        'INSUFFICIENT_STOCK'
-      )
-    }
-
-    reserved.push(reservation)
-  }
-}
-
-async function restoreStock(input: {
-  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
-  items: CanonicalOrderItem[]
-}): Promise<void> {
-  const reservations = aggregateVariantQuantities(input.items)
-  for (const reservation of reservations) {
-    await adjustVariantStockWithCas({
-      supabaseAdmin: input.supabaseAdmin,
-      variantId: reservation.variant_id,
-      delta: reservation.quantity,
-    }).catch(() => undefined)
-  }
-}
-
 export async function POST(req: NextRequest) {
   return withApiHandler(req, async ({ requestId }) => {
     await enforceRateLimit(req, {
@@ -333,78 +333,142 @@ export async function POST(req: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
+    const { data: checkoutSession, error: checkoutSessionError } = await supabaseAdmin
+      .from('checkout_sessions')
+      .select('id, razorpay_order_id, amount_paise, subtotal_amount, shipping_amount, currency, status')
+      .eq('razorpay_order_id', razorpay_order_id)
+      .maybeSingle<CheckoutSessionRow>()
+
+    if (checkoutSessionError) {
+      throw new HttpError(500, checkoutSessionError.message, 'DB_FETCH_CHECKOUT_SESSION_FAILED')
+    }
+
+    if (!checkoutSession) {
+      throw new HttpError(400, 'Checkout session not found', 'CHECKOUT_SESSION_NOT_FOUND')
+    }
+
+    if (checkoutSession.status === 'order_saved') {
+      const { data: existingOrderBySession } = await supabaseAdmin
+        .from('orders')
+        .select('id, confirmation_token')
+        .eq('razorpay_order_id', razorpay_order_id)
+        .maybeSingle()
+
+      if (existingOrderBySession?.id) {
+        return jsonOk({ order_id: existingOrderBySession.id, confirmation_token: existingOrderBySession.confirmation_token, idempotent: true }, { requestId })
+      }
+    }
+
     const { canonicalItems, expectedTotal } = await validatePricingAndStock({
       supabaseAdmin,
       items,
     })
 
-    // 1. Idempotency guard: if payment id was already saved, return existing order.
-    const { data: existingOrderByPayment } = await supabaseAdmin
-      .from('orders')
-      .select('id')
-      .eq('razorpay_payment_id', razorpay_payment_id)
-      .maybeSingle()
-
-    if (existingOrderByPayment?.id) {
-      return jsonOk({ order_id: existingOrderByPayment.id, idempotent: true }, { requestId })
+    const quote = calculateShippingRate(expectedTotal, undefined, { address: customer.address })
+    const expectedAmountPaise = amountToPaise(quote.total)
+    if (Number(checkoutSession.amount_paise) !== expectedAmountPaise) {
+      await updateCheckoutSession({
+        supabaseAdmin,
+        razorpayOrderId: razorpay_order_id,
+        status: 'payment_verification_failed',
+        razorpayPaymentId: razorpay_payment_id,
+        failureReason: 'Checkout amount changed before payment save',
+      })
+      throw new HttpError(409, 'Cart total changed. Please recreate checkout.', 'CHECKOUT_AMOUNT_CHANGED')
     }
 
-    // 2. Reserve stock before writing order to avoid overselling.
-    await reserveStockOrThrow({ supabaseAdmin, items: canonicalItems })
+    if (checkoutSession.currency !== storeConfig.currency) {
+      await updateCheckoutSession({
+        supabaseAdmin,
+        razorpayOrderId: razorpay_order_id,
+        status: 'payment_verification_failed',
+        razorpayPaymentId: razorpay_payment_id,
+        failureReason: 'Checkout currency mismatch',
+      })
+      throw new HttpError(400, 'Checkout currency mismatch', 'CHECKOUT_CURRENCY_MISMATCH')
+    }
 
-    // 3. Insert order
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .insert({
-        customer_name: customer.name,
-        customer_email: customer.email,
-        customer_phone: customer.phone,
-        customer_address: customer.address,
-        total_amount: expectedTotal,
+    try {
+      await verifyRazorpayPayment({
         razorpay_order_id,
         razorpay_payment_id,
+        expectedAmountPaise,
+        expectedCurrency: checkoutSession.currency,
       })
-      .select('id')
-      .single()
-
-    if (orderError) {
-      // Retry safety for race conditions where duplicate payment id insert fails.
-      const { data: existingAfterConflict } = await supabaseAdmin
-        .from('orders')
-        .select('id')
-        .eq('razorpay_payment_id', razorpay_payment_id)
-        .maybeSingle()
-
-      if (existingAfterConflict?.id) {
-        await restoreStock({ supabaseAdmin, items: canonicalItems })
-        return jsonOk({ order_id: existingAfterConflict.id, idempotent: true }, { requestId })
-      }
-
-      await restoreStock({ supabaseAdmin, items: canonicalItems })
-
-      throw new HttpError(500, orderError.message, 'DB_INSERT_ORDER_FAILED')
+    } catch (error) {
+      await updateCheckoutSession({
+        supabaseAdmin,
+        razorpayOrderId: razorpay_order_id,
+        status: 'payment_verification_failed',
+        razorpayPaymentId: razorpay_payment_id,
+        failureReason: error instanceof Error ? error.message : 'Payment verification failed',
+      })
+      throw error
     }
 
-    // 4. Insert order items
-    const { error: itemsError } = await supabaseAdmin.from('order_items').insert(
-      canonicalItems.map((item) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        price: item.price,
-        quantity: item.quantity,
-      }))
-    )
+    await updateCheckoutSession({
+      supabaseAdmin,
+      razorpayOrderId: razorpay_order_id,
+      status: 'payment_verified',
+      razorpayPaymentId: razorpay_payment_id,
+      failureReason: null,
+    })
 
-    if (itemsError) {
-      await supabaseAdmin.from('orders').delete().eq('id', order.id)
-      await restoreStock({ supabaseAdmin, items: canonicalItems })
-      throw new HttpError(500, itemsError.message, 'DB_INSERT_ORDER_ITEMS_FAILED')
+    await writeAuditLog({
+      actorType: 'customer',
+      action: 'payment.verified',
+      entityType: 'checkout_session',
+      entityId: checkoutSession.id,
+      requestId,
+      metadata: {
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        amountPaise: expectedAmountPaise,
+        subtotalAmount: quote.subtotal,
+        shippingAmount: quote.shippingAmount,
+        currency: checkoutSession.currency,
+      },
+    })
+
+    const { data: saved, error: saveError } = await supabaseAdmin.rpc('complete_checkout', {
+      p_order: {
+        customer_name: customer.name, customer_email: customer.email,
+        customer_phone: customer.phone, customer_address: customer.address,
+        total_amount: quote.total, shipping_amount: quote.shippingAmount,
+        payment_method: 'razorpay', razorpay_order_id, razorpay_payment_id,
+      },
+      p_items: canonicalItems,
+    })
+    if (saveError || !saved?.order_id) {
+      await updateCheckoutSession({
+        supabaseAdmin, razorpayOrderId: razorpay_order_id, status: 'order_save_failed',
+        razorpayPaymentId: razorpay_payment_id, failureReason: saveError?.message ?? 'Order save failed',
+      })
+      throw new HttpError(409, 'Your payment was received but the order needs recovery. Please retry or contact support.', 'ORDER_SAVE_RETRY_REQUIRED')
     }
+    const order = { id: String(saved.order_id) }
+    const confirmationToken = String(saved.confirmation_token)
+
+    await writeAuditLog({
+      actorType: 'customer',
+      action: 'order.create',
+      entityType: 'order',
+      entityId: order.id,
+      requestId,
+      metadata: {
+        checkoutSessionId: checkoutSession.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        subtotalAmount: quote.subtotal,
+        shippingAmount: quote.shippingAmount,
+        totalAmount: quote.total,
+        itemCount: canonicalItems.length,
+      },
+    })
 
     // 5. Trigger centralized notifications (email + WhatsApp) with idempotency logs.
-    void notifyOrderPlaced(order.id).catch(() => undefined)
+    after(() => notifyOrderPlaced(order.id))
 
-    return jsonOk({ order_id: order.id }, { requestId })
+    return jsonOk({ order_id: order.id, confirmation_token: confirmationToken }, { requestId })
   })
 }

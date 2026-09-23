@@ -1,3 +1,4 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StatusUpdater from './StatusUpdater'
@@ -17,6 +18,7 @@ type OrderDetailPayload = {
     customer_address: string | null
     total_amount: number | null
     status: string | null
+    payment_method?: string | null
     razorpay_order_id: string | null
     razorpay_payment_id: string | null
     created_at: string | null
@@ -63,6 +65,7 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireAdminPermission('orders:read')
   const { id } = await params
   let payload: OrderDetailPayload
   let notificationLogs: NotificationLogsPayload['logs'] = []
@@ -112,6 +115,10 @@ export default async function OrderDetailPage({
         </InfoCard>
 
         <InfoCard title="Payment" description="Transaction identifiers and checkout timing.">
+          <InfoRow
+            label="Payment Method"
+            value={formatPaymentMethod(order.payment_method)}
+          />
           <InfoRow
             label="Razorpay Order ID"
             value={order.razorpay_order_id || '—'}
@@ -388,6 +395,21 @@ function StatusPill({ status }: { status: string }) {
       {status}
     </span>
   )
+}
+
+function formatPaymentMethod(method?: string | null) {
+  switch (method) {
+    case 'cod':
+      return 'COD / Pay on delivery'
+    case 'manual':
+      return 'Manual payment'
+    case 'whatsapp_cod':
+      return 'WhatsApp COD'
+    case 'razorpay':
+      return 'Razorpay'
+    default:
+      return 'Razorpay'
+  }
 }
 
 function InfoCard({

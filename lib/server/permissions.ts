@@ -1,12 +1,76 @@
-export type UserRole = 'super_admin' | 'product_manager' | 'delivery_manager'
+export type UserRole =
+  | 'super_admin'
+  | 'owner'
+  | 'product_manager'
+  | 'order_manager'
+  | 'support'
+  | 'developer'
+
+const ROLE_PERMISSIONS: Record<UserRole, readonly string[]> = {
+  super_admin: ['*'],
+  owner: [
+    'analytics:read',
+    'exports:read',
+    'orders:list',
+    'orders:read',
+    'orders:update-status',
+    'products:list',
+    'products:read',
+    'products:create',
+    'products:update',
+    'products:delete',
+    'catalog:bulk-update',
+    'catalog:categories',
+    'inventory:read',
+    'media:manage',
+    'settings:read',
+    'settings:update',
+    'admin-users:manage',
+    'upload:image',
+  ],
+  product_manager: [
+    'products:list',
+    'products:read',
+    'products:create',
+    'products:update',
+    'products:delete',
+    'catalog:bulk-update',
+    'catalog:categories',
+    'inventory:read',
+    'media:manage',
+    'upload:image',
+  ],
+  order_manager: [
+    'exports:read',
+    'orders:list',
+    'orders:read',
+    'orders:update-status',
+  ],
+  support: [
+    'orders:list',
+    'orders:read',
+  ],
+  developer: [
+    'analytics:read',
+    'exports:read',
+    'orders:list',
+    'orders:read',
+    'products:list',
+    'products:read',
+    'inventory:read',
+    'settings:read',
+  ],
+}
 
 /**
  * Check whether a role is allowed to perform an action.
- * Currently only super_admin exists. Future roles can be added here.
+ * Single-password sessions still map to super_admin until real admin users exist.
  */
 export function hasPermission(role: UserRole, action: string): boolean {
-  void action
-  if (role === 'super_admin') return true
-  // Placeholder for future role-based rules
-  return false
+  const permissions = ROLE_PERMISSIONS[role] ?? []
+  return permissions.includes('*') || permissions.includes(action)
+}
+
+export function getRolePermissions(role: UserRole): readonly string[] {
+  return ROLE_PERMISSIONS[role] ?? []
 }

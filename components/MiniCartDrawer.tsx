@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { getCartSnapshot, removeFromCart, updateQuantity, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { formatMoney } from '@/lib/money'
 import { tenantConfig } from '@/lib/tenant.config'
@@ -29,6 +29,7 @@ const SWIPE_DRAG_CAP_PX = 140
 
 export default function MiniCartDrawer() {
   const router = useRouter()
+  const pathname = usePathname()
   const cart = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerSnapshot)
   const [open, setOpen] = useState(false)
   const [addedNoticeVisible, setAddedNoticeVisible] = useState(false)
@@ -79,6 +80,15 @@ export default function MiniCartDrawer() {
       window.removeEventListener('cart-open-manual', handleOpenFromHeader)
     }
   }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDragOffset(0)
+      setIsDragging(false)
+      setOpen(false)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [pathname])
 
   useEffect(() => {
     if (!open) return

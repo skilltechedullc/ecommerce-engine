@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getBestSellerProductIds } from '@/lib/server/bestSellers'
 import { storeConfig } from '@/lib/config'
-import { moneyWithSymbol } from '@/lib/money'
 import { tenantConfig } from '@/lib/tenant.config'
 import TrackedLink from '@/components/TrackedLink'
+import ProductCard from '@/components/ProductCard'
 import styles from './homepage.module.css'
 
 type RawProduct = {
@@ -18,7 +18,7 @@ type RawProduct = {
   price: number | null
   stock: number | null
   is_active: boolean
-  product_variants: Array<{ price: number | null }> | null
+  product_variants: Array<{ id: string | null; weight: string | null; price: number | null; compare_at_price: number | null; stock: number | null }> | null
 }
 
 type ProductView = {
@@ -30,6 +30,7 @@ type ProductView = {
   category: string
   startingPrice: number
   stock: number
+  product_variants: Array<{ id: string | null; weight: string | null; price: number | null; compare_at_price: number | null; stock: number | null }>
 }
 
 const QUALITY_CERTS = tenantConfig.marketing.home.qualityCertifications
@@ -70,6 +71,7 @@ function toProductView(product: RawProduct): ProductView {
     category: product.category ?? 'Natural Product',
     startingPrice: getStartingPrice(product),
     stock: Number(product.stock ?? 0),
+    product_variants: product.product_variants ?? [],
   }
 }
 
@@ -108,10 +110,22 @@ function buildCategoryCollections(products: ProductView[]): CategoryCollection[]
     }))
 }
 
+function getProductTone(category?: string | null) {
+  const value = (category ?? '').toLowerCase()
+
+  if (value.includes('spice') || value.includes('masala')) return 'spice'
+  if (value.includes('oil')) return 'oil'
+  if (value.includes('honey') || value.includes('sweet')) return 'sweet'
+  if (value.includes('pickle') || value.includes('condiment')) return 'pickle'
+  if (value.includes('rice') || value.includes('flour') || value.includes('breakfast')) return 'grain'
+  if (value.includes('coconut')) return 'coconut'
+  return 'natural'
+}
+
 export default async function HomePage() {
   const { data } = await supabase
     .from('products')
-    .select('id,name,slug,description,image,category,price,stock,is_active,product_variants(price)')
+    .select('id,name,slug,description,image,category,price,stock,is_active,product_variants(id, weight, price, compare_at_price, stock)')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(12)
@@ -163,6 +177,10 @@ export default async function HomePage() {
                 <span key={item} className={styles.heroTrustChip}>{item}</span>
               ))}
             </div>
+            <div className={styles.quickBuyPanel}>
+              <span>Fast order path</span>
+              <strong>Choose product - Add to cart - Secure checkout</strong>
+            </div>
           </div>
 
           <div className={styles.heroVisual}>
@@ -186,7 +204,7 @@ export default async function HomePage() {
                           className={styles.heroImage}
                         />
                       ) : (
-                        <div className={styles.heroPlaceholder}>
+                        <div className={styles.heroPlaceholder} data-tone={getProductTone(product.category)}>
                             <span>{product.name}</span>
                         </div>
                       )}
@@ -209,7 +227,7 @@ export default async function HomePage() {
                       className={styles.heroImage}
                     />
                   ) : (
-                    <div className={styles.heroPlaceholder}>
+                    <div className={styles.heroPlaceholder} data-tone={getProductTone(heroProduct?.category)}>
                       <span>{tenantConfig.marketing.home.heroPlaceholderProduct}</span>
                     </div>
                   )}
@@ -226,8 +244,9 @@ export default async function HomePage() {
 
       <section className={styles.section}>
         <div className={styles.sectionHead}>
-          <p className={styles.sectionKicker}>Featured Products</p>
+          <p className={styles.sectionKicker}>Quick Buy</p>
           <h2>{tenantConfig.marketing.home.featuredHeading}</h2>
+          <p>Pick a bestseller, add it to cart, and complete checkout without losing the product page.</p>
         </div>
         <ProductGrid products={featuredProducts} emptyText="Featured products will appear here soon." />
       </section>
@@ -363,30 +382,7 @@ function ProductGrid({
   return (
     <div className={styles.productGrid}>
       {products.map((product) => (
-        <Link key={product.id} href={`/products/${product.slug}`} className={styles.productCard}>
-          <div className={styles.productImageWrap}>
-            {showBestSellerBadge ? <span className={styles.bestSellerBadge}>Best Seller</span> : null}
-            {product.stock > 0 && product.stock <= 10 ? (
-              <span className={styles.lowStockBadge}>Only {product.stock} left</span>
-            ) : null}
-            {product.image ? (
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                unoptimized
-                className={styles.productImage}
-              />
-            ) : (
-              <div className={styles.productImagePlaceholder}>No image</div>
-            )}
-          </div>
-          <div className={styles.productBody}>
-            <p className={styles.productCategory}>{product.category}</p>
-            <h3>{product.name}</h3>
-            <p className={styles.productPrice}>From {moneyWithSymbol(product.startingPrice)}</p>
-          </div>
-        </Link>
+        <ProductCard key={product.id} product={product} isBestSeller={showBestSellerBadge} />
       ))}
     </div>
   )

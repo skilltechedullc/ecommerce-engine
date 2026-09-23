@@ -573,7 +573,7 @@
 
 @media (max-width: 720px) {
   .page {
-    padding: 40px 16px 220px;
+    padding: 40px 16px calc(240px + env(safe-area-inset-bottom));
   }
 
   .heroCard,
@@ -610,7 +610,7 @@
     position: fixed;
     left: 14px;
     right: 14px;
-    bottom: 84px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
     z-index: 220;
     border-radius: 16px;
     border: 1px solid rgba(15, 73, 53, 0.14);

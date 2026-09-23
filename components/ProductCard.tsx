@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { addToCart, emitCartUpdated } from '@/lib/cart'
 import { moneyWithSymbol } from '@/lib/money'
 import styles from './ProductCard.module.css'
@@ -18,6 +18,18 @@ export type Product = {
   image?: string | null
   category?: string | null
   product_variants?: Array<{ id?: string | null; name?: string | null; weight?: string | null; price: number | null; compare_at_price?: number | null; stock?: number | null }>
+}
+
+function getProductTone(category?: string | null) {
+  const value = (category ?? '').toLowerCase()
+
+  if (value.includes('spice') || value.includes('masala')) return 'spice'
+  if (value.includes('oil')) return 'oil'
+  if (value.includes('honey') || value.includes('sweet')) return 'sweet'
+  if (value.includes('pickle') || value.includes('condiment')) return 'pickle'
+  if (value.includes('rice') || value.includes('flour') || value.includes('breakfast')) return 'grain'
+  if (value.includes('coconut')) return 'coconut'
+  return 'natural'
 }
 
 export default function ProductCard({
@@ -61,6 +73,7 @@ export default function ProductCard({
   const stock = displayVariant?.stock ?? Number(product.stock ?? 0)
   const isLowStock = Number.isFinite(stock) && stock > 0 && stock <= 10
   const inStock = Boolean(displayVariant) ? stock > 0 : Number.isFinite(stock) ? stock > 0 : true
+  const placeholderTone = getProductTone(product.category)
 
   function triggerQuickAdd() {
     if (!inStock || displayPrice <= 0) return
@@ -93,19 +106,6 @@ export default function ProductCard({
     triggerQuickAdd()
   }
 
-  function handleInlineCtaClick(event: MouseEvent<HTMLSpanElement>) {
-    event.preventDefault()
-    event.stopPropagation()
-    triggerQuickAdd()
-  }
-
-  function handleInlineCtaKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
-    if (event.key !== 'Enter' && event.key !== ' ') return
-    event.preventDefault()
-    event.stopPropagation()
-    triggerQuickAdd()
-  }
-
   return (
     <article className={styles.card}>
       <Link href={`/products/${product.slug}`} className={styles.cardLink}>
@@ -119,15 +119,13 @@ export default function ProductCard({
               className={styles.image}
             />
           ) : (
-            <svg
-              width="48" height="48" viewBox="0 0 24 24"
-              fill="none" stroke="#C5BBA8" strokeWidth="1"
-              strokeLinecap="round" strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
+            <div className={styles.placeholderArt} data-tone={placeholderTone} aria-hidden="true">
+              <div className={styles.placeholderPack}>
+                <span className={styles.placeholderBrand}>millco</span>
+                <strong>{product.name}</strong>
+                <span>{product.category ?? 'Natural Foods'}</span>
+              </div>
+            </div>
           )}
           {product.category ? <span className={styles.category}>{product.category}</span> : null}
           {isBestSeller ? <span className={styles.bestSellerBadge}>Best Seller</span> : null}
@@ -148,16 +146,7 @@ export default function ProductCard({
               </div>
             </div>
 
-            <span
-              className={styles.cta}
-              role="button"
-              tabIndex={0}
-              aria-label={`Quick add ${product.name} to cart`}
-              onClick={handleInlineCtaClick}
-              onKeyDown={handleInlineCtaKeyDown}
-            >
-              Buy Now
-            </span>
+            <span className={styles.detailCta}>View Details</span>
           </div>
         </div>
       </Link>
@@ -170,7 +159,7 @@ export default function ProductCard({
           disabled={!inStock || displayPrice <= 0}
           aria-label={`Add ${product.name} to cart`}
         >
-          {added ? 'Added' : 'Add to Cart'}
+          {added ? 'Added' : inStock ? 'Add to Cart' : 'Out of Stock'}
         </button>
       </div>
     </article>

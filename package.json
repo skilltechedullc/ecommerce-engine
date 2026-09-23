@@ -6,26 +6,58 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:phase3": "node --import tsx --test tests/checkout-hardening.test.ts",
+    "test:security": "node --import tsx --test tests/security-hardening.test.ts",
+    "test:audit": "node --import tsx --test tests/audit-reliability.test.ts",
+    "test:config": "node --import tsx --test tests/config-separation.test.ts",
+    "test:phase7": "node --import tsx --test tests/phase7-validation.test.ts",
+    "test:catalog": "node --import tsx --test tests/catalog-tools.test.ts",
+    "test:orders": "node --import tsx --test tests/order-tracking.test.ts",
+    "test:roadmap": "node --import tsx --test tests/roadmap-docs.test.ts",
+    "client:env": "node scripts/create-client-env-template.mjs",
+    "client:setup": "node scripts/create-client-setup.mjs",
+    "client:handover": "node scripts/generate-client-handover.mjs",
+    "client:preview": "node scripts/preview-client-store.mjs",
+    "supabase:plan": "node scripts/plan-supabase-migration.mjs",
+    "supabase:apply": "node scripts/apply-supabase-migrations.mjs",
+    "storage:verify": "node scripts/verify-storage-setup.mjs",
+    "storage:cleanup-products": "node scripts/cleanup-product-images.mjs",
+    "readiness": "node scripts/check-production-readiness.mjs",
+    "catalog:validate-import": "node scripts/validate-product-import.mjs",
+    "catalog:seed-millco": "node scripts/seed-millco-sample-catalog.mjs",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
-    "@supabase/supabase-js": "^2.98.0",
-    "next": "16.1.6",
+    "@anthropic-ai/sdk": "^0.98.0",
+    "@supabase/supabase-js": "^2.106.2",
+    "next": "^16.2.6",
     "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.3",
-    "zod": "^4.3.6"
+    "read-excel-file": "^9.0.10",
+    "resend": "^6.12.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.6",
+    "supabase": "^2.101.0",
+    "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.15"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

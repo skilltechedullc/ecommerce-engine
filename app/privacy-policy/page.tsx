@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
 import styles from '@/app/legal.module.css'
+import { tenantConfig } from '@/lib/tenant.config'
+
+const legal = tenantConfig.legal
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy Policy for Millco Organic & Fresh Food Products and shop.millco.in.',
+  description: `Privacy Policy for ${legal.operatorName} and ${legal.websiteLabel}.`,
 }
 
 const sections = [
   {
     title: '1. Information We Collect',
-    body: 'When you browse or place an order on shop.millco.in, we may collect your name, phone number, email address, delivery address, order details, payment-related information, and any messages or support requests you send through our website, WhatsApp, email, or SMS channels.',
+    body: `When you browse or place an order on ${legal.websiteLabel}, we may collect your name, phone number, email address, delivery address, order details, payment-related information, and any messages or support requests you send through our website, WhatsApp, email, or SMS channels.`,
   },
   {
     title: '2. How We Use Your Information',
@@ -41,7 +44,7 @@ const sections = [
   },
   {
     title: '9. International Orders',
-    body: 'Because Millco Organic & Fresh Food Products serves customers in India and may ship internationally, some information may be processed across borders where required for payment, logistics, customer service, or legal compliance.',
+    body: `Because ${legal.operatorName} serves customers in ${legal.jurisdictionCountry} and may ship internationally where configured, some information may be processed across borders where required for payment, logistics, customer service, or legal compliance.`,
   },
   {
     title: '10. Policy Updates',
@@ -56,13 +59,13 @@ export default function PrivacyPolicyPage() {
         <p className={styles.eyebrow}>Privacy Policy</p>
         <h1 className={styles.title}>Privacy Policy</h1>
         <p className={styles.intro}>
-          This Privacy Policy explains how Millco Organic & Fresh Food Products collects, uses,
-          stores, and protects personal information when you use shop.millco.in to browse,
+          This Privacy Policy explains how {legal.operatorName} collects, uses,
+          stores, and protects personal information when you use {legal.websiteLabel} to browse,
           purchase, or communicate with us through the website, WhatsApp, email, or SMS.
         </p>
         <div className={styles.meta}>
-          <span className={styles.metaChip}>Brand: Millco Organic & Fresh Food Products</span>
-          <span className={styles.metaChip}>Website: shop.millco.in</span>
+          <span className={styles.metaChip}>Brand: {legal.operatorName}</span>
+          <span className={styles.metaChip}>Website: {legal.websiteLabel}</span>
           <span className={styles.metaChip}>Effective date: March 30, 2026</span>
         </div>
       </section>
@@ -80,7 +83,7 @@ export default function PrivacyPolicyPage() {
         <h2 className={styles.contactTitle}>Contact and Deletion Requests</h2>
         <p className={styles.contactText}>
           To request access, correction, or deletion of your data, please email{' '}
-          <a href="mailto:info@millco.in">info@millco.in</a> with your full name, contact
+          <a href={`mailto:${legal.supportEmail}`}>{legal.supportEmail}</a> with your full name, contact
           details, and order reference where available. We may ask for reasonable identity
           verification before acting on the request.
         </p>

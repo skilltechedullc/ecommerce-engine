@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
 import styles from '@/app/legal.module.css'
+import { tenantConfig } from '@/lib/tenant.config'
+
+const legal = tenantConfig.legal
 
 export const metadata: Metadata = {
   title: 'Refund Policy',
-  description: 'Refund, replacement, and cancellation policy for shop.millco.in.',
+  description: `Refund, replacement, and cancellation policy for ${legal.websiteLabel}.`,
 }
 
 export default function RefundPolicyPage() {
@@ -28,8 +31,8 @@ export default function RefundPolicyPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>1. No Return for Consumable Goods</h2>
           <p className={styles.text}>
-            For hygiene, safety, and quality reasons, food and other consumable products sold on
-            shop.millco.in are not eligible for return once delivered, except where the item is
+            For hygiene, safety, and quality reasons, food and other consumable products sold on{' '}
+            {legal.websiteLabel} are not eligible for return once delivered, except where the item is
             damaged, defective, or materially different from what was ordered.
           </p>
         </section>
@@ -92,7 +95,7 @@ export default function RefundPolicyPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>8. Contact for Refund Requests</h2>
           <p className={styles.text}>
-            Send refund or replacement requests to info@millco.in and include your order number,
+            Send refund or replacement requests to {legal.supportEmail} and include your order number,
             registered phone number, and supporting photos or videos. You may also contact us using
             the communication channels listed on the website for faster coordination.
           </p>
@@ -103,7 +106,7 @@ export default function RefundPolicyPage() {
         <h2 className={styles.contactTitle}>Need Help With an Order?</h2>
         <p className={styles.contactText}>
           For refund, replacement, or cancellation support, contact{' '}
-          <a href="mailto:info@millco.in">info@millco.in</a> within the reporting window and keep
+          <a href={`mailto:${legal.supportEmail}`}>{legal.supportEmail}</a> within the reporting window and keep
           your proof ready for review.
         </p>
       </section>

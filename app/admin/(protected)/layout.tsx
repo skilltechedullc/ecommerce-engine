@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
-import { isAdminAuthenticated } from '@/lib/adminAuth'
+import { getAdminRole } from '@/lib/adminAuth'
 import AdminChrome from '@/components/admin/AdminChrome'
 
 export default async function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
-  if (!(await isAdminAuthenticated())) {
+  const role = await getAdminRole()
+  if (!role) {
     redirect('/admin/login')
   }
 
-  return <AdminChrome>{children}</AdminChrome>
+  return <AdminChrome role={role}>{children}</AdminChrome>
 }

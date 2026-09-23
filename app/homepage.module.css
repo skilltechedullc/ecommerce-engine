@@ -148,6 +148,31 @@
   color: #1b5a43;
 }
 
+.quickBuyPanel {
+  margin-top: 16px;
+  display: grid;
+  gap: 4px;
+  width: min(420px, 100%);
+  border: 1px solid rgba(15, 73, 53, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 14px;
+  box-shadow: 0 12px 26px rgba(13, 74, 52, 0.08);
+}
+
+.quickBuyPanel span {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #17805a;
+}
+
+.quickBuyPanel strong {
+  color: #173f2e;
+  font-size: 0.95rem;
+}
+
 .heroVisual {
   animation: fadeUp 0.8s ease both;
 }
@@ -198,12 +223,71 @@
   inset: 0;
   display: grid;
   place-items: center;
+  padding: 36px;
   background:
-    linear-gradient(160deg, rgba(13, 74, 52, 0.88), rgba(28, 124, 87, 0.65)),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 60%);
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(13, 74, 52, 0.18), transparent 34%),
+    linear-gradient(145deg, #eef8f1, #dcefe3);
   color: #f8fffb;
   font-size: clamp(1.4rem, 2vw, 2rem);
   font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+.heroPlaceholder[data-tone='spice'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(167, 71, 24, 0.18), transparent 34%),
+    linear-gradient(145deg, #fff3dd, #efd2a9);
+}
+
+.heroPlaceholder[data-tone='oil'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(105, 126, 33, 0.18), transparent 34%),
+    linear-gradient(145deg, #f5f1d5, #d8e4b4);
+}
+
+.heroPlaceholder[data-tone='sweet'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(173, 105, 22, 0.16), transparent 34%),
+    linear-gradient(145deg, #fff5d6, #ecd9a5);
+}
+
+.heroPlaceholder[data-tone='pickle'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(93, 114, 28, 0.18), transparent 34%),
+    linear-gradient(145deg, #f1f2cf, #cfdca7);
+}
+
+.heroPlaceholder[data-tone='grain'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(128, 92, 48, 0.14), transparent 34%),
+    linear-gradient(145deg, #f7eedb, #e4d1ad);
+}
+
+.heroPlaceholder[data-tone='coconut'] {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.86), transparent 28%),
+    radial-gradient(circle at 84% 82%, rgba(38, 132, 93, 0.15), transparent 34%),
+    linear-gradient(145deg, #eefaf2, #d8ece0);
+}
+
+.heroPlaceholder span {
+  width: min(270px, 78%);
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  border-radius: 26px 26px 40px 40px;
+  padding: 32px 24px;
+  text-align: center;
+  line-height: 1.16;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    linear-gradient(145deg, #0c3f2e, #168761);
+  box-shadow: 0 28px 54px rgba(12, 47, 34, 0.22);
 }
 
 .heroImageOverlay {

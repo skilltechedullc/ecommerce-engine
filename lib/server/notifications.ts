@@ -9,7 +9,17 @@ import {
 import { normalizeTenantPhone } from '@/lib/tenant.config'
 import { optionalEnv } from '@/lib/server/env'
 
-type OrderStatus = 'Pending' | 'Paid' | 'Processing' | 'Shipped' | 'Delivered'
+type OrderStatus =
+  | 'Pending'
+  | 'Paid'
+  | 'Payment Failed'
+  | 'Processing'
+  | 'Shipped'
+  | 'Delivered'
+  | 'Cancelled'
+  | 'Refunded'
+  | 'Return Requested'
+  | 'Returned'
 type NotificationChannel = 'email' | 'whatsapp'
 type NotificationEvent =
   | 'order_confirmed'

@@ -999,6 +999,16 @@ body.minicart-open .whatsAppFloatingButton {
   .admin-sidebar {
     position: relative;
     height: auto;
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .admin-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-sidebar__footer {
+    display: none;
   }
 
   .admin-metricGrid,
@@ -1009,6 +1019,31 @@ body.minicart-open .whatsAppFloatingButton {
 }
 
 @media (max-width: 820px) {
+  .admin-sidebar__brand {
+    padding: 16px;
+  }
+
+  .admin-nav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .admin-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav__link {
+    min-width: 150px;
+    padding: 12px;
+  }
+
+  .admin-nav__description {
+    display: none;
+  }
+
   .admin-main {
     padding: 14px;
   }
@@ -1037,6 +1072,11 @@ body.minicart-open .whatsAppFloatingButton {
   .admin-topbar__actions {
     width: 100%;
     justify-content: stretch;
+  }
+
+  .admin-topbar {
+    position: relative;
+    top: auto;
   }
 
   .admin-profileCard,

@@ -15,9 +15,8 @@ export const metadata = {
 type SuccessPageProps = {
   searchParams: Promise<{
     order_id?: string
-    total?: string
-    items?: string
-    product_ids?: string
+    token?: string
+    payment_method?: string
   }>
 }
 
@@ -31,6 +30,7 @@ type RecommendedProduct = {
 
 type OrderRecord = {
   total_amount: number | string | null
+  payment_method?: string | null
 }
 
 type OrderItemRecord = {
@@ -42,29 +42,21 @@ type OrderItemRecord = {
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = await searchParams
   const orderId = (params.order_id ?? '').trim()
-  const fallbackTotalValue = Number(params.total ?? 0)
-  const fallbackItemSummary = (params.items ?? '')
-    .split('|')
-    .map((item) => item.trim())
-    .filter(Boolean)
-  const fallbackPurchasedProductIds = new Set(
-    (params.product_ids ?? '')
-      .split('|')
-      .map((id) => id.trim())
-      .filter(Boolean)
-  )
+  const confirmationToken = (params.token ?? '').trim()
 
-  let orderTotal = fallbackTotalValue
-  let itemSummary = fallbackItemSummary
-  let purchasedProductIds = fallbackPurchasedProductIds
+  let orderTotal = 0
+  let itemSummary: string[] = []
+  let purchasedProductIds = new Set<string>()
+  let paymentMethod = params.payment_method === 'cod' ? 'cod' : 'razorpay'
 
-  if (orderId) {
+  if (orderId && confirmationToken) {
     const supabaseAdmin = getSupabaseAdmin()
     const [{ data: order }, { data: items }] = await Promise.all([
       supabaseAdmin
         .from('orders')
-        .select('total_amount')
+        .select('total_amount, payment_method')
         .eq('id', orderId)
+        .eq('confirmation_token', confirmationToken)
         .maybeSingle<OrderRecord>(),
       supabaseAdmin
         .from('order_items')
@@ -78,9 +70,10 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
       if (Number.isFinite(dbTotal) && dbTotal > 0) {
         orderTotal = dbTotal
       }
+      paymentMethod = order.payment_method === 'cod' ? 'cod' : 'razorpay'
     }
 
-    if (items && items.length > 0) {
+    if (order && items && items.length > 0) {
       itemSummary = items.map((item) => `${item.product_name} x${item.quantity}`)
       purchasedProductIds = new Set(
         items
@@ -111,7 +104,14 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.logoRow}>
-          <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={92} height={92} priority />
+          <Image
+            src={storeConfig.logoUrl}
+            alt={storeConfig.brandName}
+            width={92}
+            height={92}
+            priority
+            style={{ width: '92px', height: 'auto' }}
+          />
         </div>
 
         <div className={styles.checkWrap}>
@@ -126,7 +126,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         </p>
 
         <div className={styles.pillRow}>
-          <span className={styles.pill}>Payment received</span>
+          <span className={styles.pill}>{paymentMethod === 'cod' ? 'Pay on delivery' : 'Payment received'}</span>
           <span className={styles.pill}>Fulfilment queued</span>
           <span className={styles.pill}>Fresh dispatch soon</span>
         </div>

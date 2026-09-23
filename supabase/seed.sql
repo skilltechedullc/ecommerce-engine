@@ -1,0 +1,2 @@
+-- Local seed placeholder.
+-- Keep empty for now so `supabase db reset` can run without loading demo data.

@@ -15,6 +15,7 @@ type Props = {
 }
 
 type VariantForm = {
+  id?: string
   name: string
   price: string
   compareAtPrice: string
@@ -36,6 +37,7 @@ function toVariantForm(variant?: ProductVariant): VariantForm {
   const images = (variant?.images ?? []).filter(Boolean)
   const fallbackImage = normalizeImageValue(variant?.image)
   return {
+    id: variant?.id,
     name: variant?.name ?? variant?.weight ?? '',
     price: variant?.price?.toString() ?? '',
     compareAtPrice: variant?.compare_at_price?.toString() ?? '',
@@ -224,6 +226,7 @@ export default function ProductForm({
   const validVariants = useMemo(() => {
     return variantForms
       .map((variant) => ({
+        id: variant.id,
         name: variant.name.trim(),
         price: Number(variant.price),
         compare_at_price: variant.compareAtPrice.trim() ? Number(variant.compareAtPrice) : null,
@@ -318,6 +321,20 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="admin-formSections" style={{ maxWidth: '1120px' }}>
+      {mode === 'create' ? (
+        <section className="admin-surface admin-formSection">
+          <div className="admin-formSection__header">
+            <div>
+              <p className="admin-formSection__eyebrow">First Product Checklist</p>
+              <h2 className="admin-formSection__title">Ready-to-sell basics</h2>
+              <p className="admin-formSection__description">
+                A product is ready when it has a clear name, product image, at least one variant, selling price, and available stock.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="admin-surface admin-formSection">
         <div className="admin-formSection__header">
           <div>

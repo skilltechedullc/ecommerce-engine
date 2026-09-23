@@ -26,13 +26,14 @@ create table if not exists public.products (
 create table if not exists public.product_variants (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products(id) on delete cascade,
-  name text not null,
+  weight text not null,
   price numeric(12,2) not null,
   stock integer not null,
   sku text,
-  image text,
+  image jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint product_variants_weight_required check (btrim(weight) <> ''),
   constraint product_variants_price_positive check (price > 0),
   constraint product_variants_stock_nonnegative check (stock >= 0)
 );

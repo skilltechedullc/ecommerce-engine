@@ -27,11 +27,12 @@ export const metadata = {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; sort?: string; copy?: string }>
+  searchParams: Promise<{ category?: string; sort?: string; copy?: string; q?: string }>
 }) {
-  const { category, sort, copy } = await searchParams
+  const { category, sort, copy, q } = await searchParams
   const activeCategory = category ?? ''
   const activeSort = sort ?? 'featured'
+  const activeQuery = q?.trim() ?? ''
   const copyVariant: CopyVariantKey = copy === 'trust' ? 'trust' : 'urgency'
   const heroCopy = COPY_VARIANTS[copyVariant]
   const bestSellerProductIds = new Set(await getBestSellerProductIds(12))
@@ -58,6 +59,10 @@ export default async function ProductsPage({
   if (activeCategory) {
     query = query.eq('category', activeCategory)
   }
+  if (activeQuery) {
+    const escapedQuery = activeQuery.replace(/[%_,]/g, '')
+    query = query.or(`name.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,category.ilike.%${escapedQuery}%`)
+  }
   switch (activeSort) {
     case 'name-asc':
       query = query.order('name', { ascending: true })
@@ -76,7 +81,7 @@ export default async function ProductsPage({
   const { data: products, error } = await query
 
   const totalProducts = products?.length ?? 0
-  const activeFilterCount = Number(Boolean(activeCategory)) + Number(activeSort !== 'featured')
+  const activeFilterCount = Number(Boolean(activeCategory)) + Number(activeSort !== 'featured') + Number(Boolean(activeQuery))
   const popularProducts = (products ?? []).filter((product) => bestSellerProductIds.has(product.id)).slice(0, 4)
 
   return (
@@ -110,6 +115,21 @@ export default async function ProductsPage({
         </section>
 
         <div className={styles.controlsBand}>
+          <form action="/products" className={styles.searchForm}>
+            {activeCategory ? <input type="hidden" name="category" value={activeCategory} /> : null}
+            {activeSort !== 'featured' ? <input type="hidden" name="sort" value={activeSort} /> : null}
+            <label className={styles.searchLabel} htmlFor="product-search">Search products</label>
+            <div className={styles.searchRow}>
+              <input
+                id="product-search"
+                name="q"
+                defaultValue={activeQuery}
+                placeholder="Search honey, oil, coconut..."
+              />
+              <button type="submit">Search</button>
+            </div>
+          </form>
+
           <div className={styles.filters}>
             <FilterPill href={buildProductsHref('', activeSort)} label="All" active={!activeCategory} />
             {categories.map((cat) => (
@@ -189,7 +209,7 @@ export default async function ProductsPage({
         ) : (
           <div className={styles.emptyState}>
             <p style={{ fontSize: '16px', marginBottom: '20px' }}>
-              No products found{activeCategory ? ` in "${activeCategory}"` : ''}.
+              No products found{activeCategory ? ` in "${activeCategory}"` : ''}{activeQuery ? ` for "${activeQuery}"` : ''}.
             </p>
             {activeCategory && (
               <Link href="/products">

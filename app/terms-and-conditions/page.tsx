@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
 import styles from '@/app/legal.module.css'
+import { tenantConfig } from '@/lib/tenant.config'
+
+const legal = tenantConfig.legal
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions',
-  description: 'Terms and Conditions for purchases and use of shop.millco.in.',
+  description: `Terms and Conditions for purchases and use of ${legal.websiteLabel}.`,
 }
 
 const sections = [
   {
     title: '1. General Use of the Website',
-    body: 'By accessing or using shop.millco.in, you agree to use the website lawfully and in accordance with these Terms & Conditions. This website is operated by Millco Organic & Fresh Food Products for the sale of food and related products to customers in India and selected international destinations.',
+    body: `By accessing or using ${legal.websiteLabel}, you agree to use the website lawfully and in accordance with these Terms & Conditions. This website is operated by ${legal.operatorName} for ${legal.businessDescription}.`,
   },
   {
     title: '2. Product Information and Availability',
@@ -41,11 +44,11 @@ const sections = [
   },
   {
     title: '9. Limitation of Liability',
-    body: 'To the maximum extent permitted by law, Millco Organic & Fresh Food Products will not be liable for indirect, incidental, special, or consequential losses arising from use of the website, delayed deliveries, third-party service interruptions, or misuse of customer accounts or devices. Our total liability in relation to any order will generally not exceed the amount paid for the affected order.',
+    body: `To the maximum extent permitted by law, ${legal.operatorName} will not be liable for indirect, incidental, special, or consequential losses arising from use of the website, delayed deliveries, third-party service interruptions, or misuse of customer accounts or devices. Our total liability in relation to any order will generally not exceed the amount paid for the affected order.`,
   },
   {
     title: '10. Governing Law',
-    body: 'These Terms & Conditions are governed by the laws of India. Any dispute arising from use of the website or purchase of products shall be subject to the applicable courts and legal processes in India, unless mandatory law requires otherwise.',
+    body: `These Terms & Conditions are governed by the laws of ${legal.jurisdictionCountry}. Any dispute arising from use of the website or purchase of products shall be subject to the applicable courts and legal processes in ${legal.jurisdictionCountry}, unless mandatory law requires otherwise.`,
   },
   {
     title: '11. Changes to These Terms',
@@ -60,13 +63,13 @@ export default function TermsAndConditionsPage() {
         <p className={styles.eyebrow}>Terms & Conditions</p>
         <h1 className={styles.title}>Terms & Conditions</h1>
         <p className={styles.intro}>
-          These Terms & Conditions govern your access to shop.millco.in and your purchase of
-          products from Millco Organic & Fresh Food Products. Please read them carefully before using
+          These Terms & Conditions govern your access to {legal.websiteLabel} and your purchase of
+          products from {legal.operatorName}. Please read them carefully before using
           the website or placing an order.
         </p>
         <div className={styles.meta}>
-          <span className={styles.metaChip}>Business: Online food products</span>
-          <span className={styles.metaChip}>Shipping: India and international destinations</span>
+          <span className={styles.metaChip}>Business: {legal.operatorName}</span>
+          <span className={styles.metaChip}>Market: {legal.jurisdictionCountry}</span>
           <span className={styles.metaChip}>Effective date: March 30, 2026</span>
         </div>
       </section>
@@ -84,7 +87,7 @@ export default function TermsAndConditionsPage() {
         <h2 className={styles.contactTitle}>Contact</h2>
         <p className={styles.contactText}>
           If you have questions about these Terms & Conditions, contact us at{' '}
-          <a href="mailto:info@millco.in">info@millco.in</a>. Please include your name and
+          <a href={`mailto:${legal.supportEmail}`}>{legal.supportEmail}</a>. Please include your name and
           order details if your question relates to a purchase.
         </p>
       </section>

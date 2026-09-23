@@ -92,12 +92,14 @@ Key files:
 Flow:
 
 1. Checkout calls POST /api/create-order with amount.
-2. Razorpay modal completes payment.
-3. Frontend calls POST /api/save-order with payment signature + customer + items.
-4. API verifies signature with RAZORPAY_KEY_SECRET.
-5. API inserts into orders and order_items.
-6. API asynchronously triggers centralized notifications.
-7. Notification service sends channel-specific email/WhatsApp messages with idempotency logs.
+2. API calculates the total from database variant prices, creates a Razorpay order, and stores a checkout_sessions row.
+3. Razorpay modal completes payment.
+4. Frontend calls POST /api/save-order with payment signature + customer + items.
+5. API verifies signature with RAZORPAY_KEY_SECRET.
+6. API fetches Razorpay payment/order server-side and verifies amount, currency, order ID, payment ID, and captured status.
+7. API reserves stock, inserts into orders and order_items, and marks checkout_sessions as order_saved.
+8. API asynchronously triggers centralized notifications.
+9. Notification service sends channel-specific email/WhatsApp messages with idempotency logs.
 
 Key files:
 
@@ -162,15 +164,27 @@ products:
 
 product_variants:
 
-- id, product_id, weight, price, stock, sku, compare_at_price
+- id, product_id, weight, price, stock, sku, compare_at_price, image
+
+`weight` is the canonical database column for the customer-facing variant label. Admin/API payloads may still call this field `name` for UX wording, but database writes should persist it to `product_variants.weight`.
 
 orders:
 
 - id, customer_name, customer_email, customer_phone, customer_address, total_amount, razorpay_order_id, razorpay_payment_id, status, created_at
 
+checkout_sessions:
+
+- id, razorpay_order_id, amount_paise, currency, items, status, failure_reason, order_id, razorpay_payment_id, created_at, updated_at
+
 order_items:
 
 - id, order_id, product_id, product_name, price, quantity
+
+chat_sessions:
+
+- id, channel, phone, step, cart, customer_name, customer_address, created_at, updated_at
+
+`chat_sessions` is the canonical session table. WhatsApp sessions use `channel = 'whatsapp'`.
 
 ### 4.3 Order item representation
 

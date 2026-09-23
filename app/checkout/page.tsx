@@ -3,10 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useSyncExternalStore } from 'react'
+import { useRef, useState, useSyncExternalStore } from 'react'
 import { getCartSnapshot, clearCart, removeFromCart, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
+import { calculateShippingRate } from '@/lib/shipping/rates'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import { buildTenantWhatsAppUrl, isValidTenantPhone, tenantConfig } from '@/lib/tenant.config'
 import styles from './checkout.module.css'
@@ -26,6 +27,7 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 type Status = 'idle' | 'creating' | 'paying' | 'saving' | 'error'
+type PaymentMethod = 'razorpay' | 'cod'
 
 type FieldErrors = {
   name?: string
@@ -57,8 +59,10 @@ export default function CheckoutPage() {
   })
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [activePaymentMethod, setActivePaymentMethod] = useState<PaymentMethod>('razorpay')
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shippingQuote = calculateShippingRate(total)
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched] = useState<Partial<Record<keyof FieldErrors, boolean>>>({})
@@ -76,8 +80,65 @@ export default function CheckoutPage() {
     setFieldErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }))
   }
 
-  const handlePay = async () => {
+  const submitManualOrder = async (customer: typeof form) => {
+    setStatus('saving')
+    const response = await fetch('/api/create-manual-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer,
+        items: cart.map((item) => ({
+          variant_id: item.variant_id,
+          variant_name: item.variant_name,
+          quantity: item.quantity,
+        })),
+      }),
+    })
+
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to place order')
+
+    clearCart()
+    emitCartUpdated()
+    const nextParams = new URLSearchParams({
+      order_id: String(data.order_id ?? ''),
+      token: String(data.confirmation_token ?? ''),
+      payment_method: 'cod',
+    })
+    router.push(`/success?${nextParams.toString()}`)
+  }
+
+  const [pendingPayment, setPendingPayment] = useState<Record<string, unknown> | null>(null)
+  const checkoutBusy = useRef(false)
+
+  const savePaidOrder = async (payload: Record<string, unknown>) => {
+    setStatus('saving')
+    const response = await fetch('/api/save-order', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Payment received, but the order could not be saved. Retry saving; do not pay again.')
+    if (!data.order_id || !data.confirmation_token) throw new Error('Order confirmation is incomplete. Retry saving; do not pay again.')
+    setPendingPayment(null)
+    clearCart()
+    emitCartUpdated()
+    router.push('/success?' + new URLSearchParams({ order_id: data.order_id, token: data.confirmation_token }).toString())
+  }
+
+
+  const handlePay = async (paymentMethod: PaymentMethod = 'razorpay') => {
+    if (checkoutBusy.current) return
+    checkoutBusy.current = true
+    try {
+    if (pendingPayment) {
+      try { await savePaidOrder(pendingPayment) } catch (error) {
+        setStatus('error')
+        setErrorMsg(error instanceof Error ? error.message : 'Could not save your paid order. Please retry saving.')
+      }
+      return
+    }
     if (cart.length === 0) return
+    setActivePaymentMethod(paymentMethod)
 
     // Pre-check cart variants to avoid failing after payment for stale items.
     const variantIds = Array.from(new Set(cart.map((item) => item.variant_id).filter(Boolean)))
@@ -120,6 +181,11 @@ export default function CheckoutPage() {
     const { name, email, phone, address } = form
 
     try {
+      if (paymentMethod === 'cod') {
+        await submitManualOrder({ name, email, phone, address })
+        return
+      }
+
       setStatus('creating')
       const orderRes = await fetch('/api/create-order', {
         method: 'POST',
@@ -129,6 +195,7 @@ export default function CheckoutPage() {
             variant_id: item.variant_id,
             quantity: item.quantity,
           })),
+          deliveryAddress: address,
         }),
       })
       const orderData = await orderRes.json()
@@ -161,45 +228,18 @@ export default function CheckoutPage() {
           },
           handler: async (response) => {
             try {
-              setStatus('saving')
-              const saveRes = await fetch('/api/save-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  customer: { name, email, phone, address },
-                  items: cart.map((item) => ({
-                    id: item.id,
-                    product_id: item.product_id,
-                    variant_id: item.variant_id,
-                    variant_name: item.variant_name,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                  })),
-                }),
-              })
-              const saveData = await saveRes.json()
-              if (!saveRes.ok) throw new Error(saveData.error || 'Failed to save order')
+              const payload = {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                customer: { name, email, phone, address },
+                items: cart.map((item) => ({
+                  variant_id: item.variant_id, variant_name: item.variant_name, quantity: item.quantity,
+                })),
+              }
+              setPendingPayment(payload)
+              await savePaidOrder(payload)
 
-              const itemSummary = cart
-                .map((item) => `${item.name} (${item.variant_name}) x${item.quantity}`)
-                .join('|')
-              const purchasedProductIds = Array.from(new Set(cart.map((item) => item.product_id)))
-                .filter(Boolean)
-                .join('|')
-
-              clearCart()
-              emitCartUpdated()
-              const nextParams = new URLSearchParams({
-                order_id: String(saveData.order_id ?? ''),
-                total: String(total),
-                items: itemSummary,
-                product_ids: purchasedProductIds,
-              })
-              router.push(`/success?${nextParams.toString()}`)
               resolve()
             } catch (error) {
               reject(error)
@@ -213,17 +253,22 @@ export default function CheckoutPage() {
       setStatus('error')
       setErrorMsg(error instanceof Error ? error.message : 'Something went wrong. Please try again.')
     }
+    } finally { checkoutBusy.current = false }
   }
 
-  const isLoading = status === 'creating' || status === 'saving'
+  const isLoading = status === 'creating' || status === 'saving' || status === 'paying'
+  const manualPaymentsEnabled =
+    process.env.NEXT_PUBLIC_FEATURE_MANUAL_PAYMENTS === 'true' ||
+    tenantConfig.features.manualPayments
   const buttonLabel =
-    status === 'creating' ? 'Creating order…'
+    pendingPayment && status !== 'saving' ? 'Retry saving paid order'
+    : status === 'creating' ? 'Creating order…'
     : status === 'saving' ? 'Saving order…'
     : status === 'paying' ? 'Processing…'
-    : `Pay Securely ${moneyWithSymbol(total)}`
+    : `Pay Securely ${moneyWithSymbol(shippingQuote.total)}`
 
   const whatsAppMessage = cart.length > 0
-    ? `${tenantConfig.marketing.whatsapp.checkoutIntroMessage}\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(total)}`
+    ? `${tenantConfig.marketing.whatsapp.checkoutIntroMessage}\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(shippingQuote.total)}`
     : ''
   const whatsAppUrl = whatsAppMessage ? buildTenantWhatsAppUrl(whatsAppMessage) : ''
 
@@ -231,6 +276,7 @@ export default function CheckoutPage() {
     <div className={styles.page}>
       <div className={styles.wrap}>
         <section className={styles.body}>
+          {cart.length > 0 ? (
           <div className={styles.formCard}>
             <div className={styles.formIntro}>
               <Link href="/cart" className={styles.backLink}>← Back to Cart</Link>
@@ -302,6 +348,7 @@ export default function CheckoutPage() {
               {fieldErrors.address && <span className={styles.fieldError}>{fieldErrors.address}</span>}
             </div>
           </div>
+          ) : null}
 
           {cart.length === 0 ? (
             <aside className={styles.emptyCard}>
@@ -338,15 +385,23 @@ export default function CheckoutPage() {
               </div>
 
               <div className={styles.summaryTotal}>
-                <span>Total</span>
+                <span>Subtotal</span>
                 <span>{moneyWithSymbol(total)}</span>
+              </div>
+              <div className={styles.summaryTotal}>
+                <span>Shipping</span>
+                <span>{shippingQuote.shippingAmount > 0 ? moneyWithSymbol(shippingQuote.shippingAmount) : 'Free'}</span>
+              </div>
+              <div className={styles.summaryTotal}>
+                <span>Total</span>
+                <span>{moneyWithSymbol(shippingQuote.total)}</span>
               </div>
 
               {(status === 'error' || errorMsg) && (
                 <div className={styles.errorBox}>{errorMsg || 'Something went wrong. Please try again.'}</div>
               )}
 
-              <button onClick={handlePay} disabled={isLoading || cart.length === 0} className={styles.payButton}>
+              <button onClick={() => handlePay('razorpay')} disabled={isLoading || cart.length === 0} className={styles.payButton}>
                 {!isLoading && (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -355,6 +410,18 @@ export default function CheckoutPage() {
                 )}
                 {buttonLabel}
               </button>
+
+              {manualPaymentsEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => handlePay('cod')}
+                  disabled={isLoading || cart.length === 0}
+                  className={styles.whatsAppFallback}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {isLoading && activePaymentMethod === 'cod' ? 'Placing order...' : 'Place order and pay on delivery'}
+                </button>
+              ) : null}
 
               <div className={styles.trustStrip}>
                 {TRUST_POINTS.map((point) => (
@@ -398,7 +465,14 @@ export default function CheckoutPage() {
 
           <aside className={styles.brandCard}>
             <div className={styles.logoRow}>
-              <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
+              <Image
+                src={storeConfig.logoUrl}
+                alt={storeConfig.brandName}
+                width={82}
+                height={82}
+                unoptimized
+                style={{ width: '82px', height: 'auto' }}
+              />
               <div className={styles.logoMeta}>
                 <span>{storeConfig.brandName}</span>
                 <strong>{tenantConfig.marketing.header.mobileSubtitle}</strong>
@@ -415,14 +489,14 @@ export default function CheckoutPage() {
           <div className={styles.mobileStickyBar}>
             <div className={styles.mobileStickyLeft}>
               <span className={styles.mobileStickyTotalLabel}>Total</span>
-              <span className={styles.mobileStickyTotalAmount}>{moneyWithSymbol(total)}</span>
+              <span className={styles.mobileStickyTotalAmount}>{moneyWithSymbol(shippingQuote.total)}</span>
             </div>
             <button
-              onClick={handlePay}
+              onClick={() => handlePay('razorpay')}
               disabled={isLoading || cart.length === 0}
               className={styles.mobileStickyPayBtn}
             >
-              {isLoading ? buttonLabel : `Pay Securely ${moneyWithSymbol(total)}`}
+              {isLoading ? buttonLabel : `Pay Securely ${moneyWithSymbol(shippingQuote.total)}`}
             </button>
           </div>
         )}

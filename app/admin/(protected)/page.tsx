@@ -1,6 +1,8 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
+import { logger } from '@/lib/server/logger'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tenantConfig } from '@/lib/tenant.config'
 
@@ -15,12 +17,12 @@ type DashboardOrder = {
   total_amount: number | null
   created_at: string | null
   status: string | null
-  customer_address?: string | null
+  source?: string | null
   order_items?: OrderItem[] | null
 }
 
 type ChannelOrderRow = {
-  customer_address: string | null
+  source: string | null
   total_amount: number | null
 }
 
@@ -44,18 +46,17 @@ function shortDayLabel(date: Date) {
   return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short' })
 }
 
-function isLikelyWhatsAppOrder(address: string | null): boolean {
-  if (!address) return false
-  const normalized = address.toLowerCase()
-  return (
-    normalized.includes('whatsapp')
-    || normalized.includes('wa.me')
-    || normalized.includes('w/a')
-    || normalized.includes('via whatsapp')
-  )
+function orderSource(row: ChannelOrderRow): 'whatsapp' | 'web' {
+  return row.source === 'whatsapp' ? 'whatsapp' : 'web'
+}
+
+function shouldLogDashboardFallback(error: unknown): boolean {
+  if (!(error instanceof Error)) return true
+  return !error.message.includes('Dynamic server usage')
 }
 
 export default async function AdminDashboard() {
+  await requireAdminPermission('analytics:read')
   const supabase = getSupabaseAdmin()
   let safeOrders: DashboardOrder[] = []
   try {
@@ -64,7 +65,9 @@ export default async function AdminDashboard() {
     }>('/api/orders/list')
     safeOrders = orders ?? []
   } catch (error) {
-    console.error('Dashboard orders fetch failed:', error)
+    if (shouldLogDashboardFallback(error)) {
+      logger.warn('admin.dashboard.orders_fetch_failed', { error })
+    }
     safeOrders = []
   }
   const totalOrders = safeOrders.length
@@ -109,7 +112,7 @@ export default async function AdminDashboard() {
   try {
     const { data: channelRows, error: channelError } = await supabase
       .from('orders')
-      .select('customer_address, total_amount')
+      .select('source, total_amount')
 
     if (channelError) {
       throw channelError
@@ -117,12 +120,12 @@ export default async function AdminDashboard() {
 
     channelData = (channelRows ?? []) as ChannelOrderRow[]
   } catch (error) {
-    console.error('Failed to load channel analytics:', error)
+    logger.warn('admin.dashboard.channel_analytics_failed', { error })
     channelData = []
   }
 
-  const whatsappOrders = channelData.filter((row) => isLikelyWhatsAppOrder(row.customer_address))
-  const webOrders = channelData.filter((row) => !isLikelyWhatsAppOrder(row.customer_address))
+  const whatsappOrders = channelData.filter((row) => orderSource(row) === 'whatsapp')
+  const webOrders = channelData.filter((row) => orderSource(row) === 'web')
   const whatsappOrdersCount = whatsappOrders.length
   const webOrdersCount = webOrders.length
   const whatsappRevenue = whatsappOrders.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0)
@@ -148,7 +151,7 @@ export default async function AdminDashboard() {
       (variant) => Number(variant.stock ?? 0) <= 10
     )
   } catch (error) {
-    console.error('Failed to load low stock data:', error)
+    logger.warn('admin.dashboard.low_stock_failed', { error })
     lowStockVariants = []
   }
 

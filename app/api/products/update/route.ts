@@ -9,11 +9,14 @@ import {
   withApiHandler,
 } from '@/lib/server/api'
 import { enforceRateLimit } from '@/lib/server/rateLimit'
+import { enforceSameOriginMutation } from '@/lib/server/csrf'
 import { parseSchema, updateProductSchema } from '@/lib/server/schemas'
+import { writeAuditLog } from '@/lib/server/audit'
 
 export async function POST(req: NextRequest) {
   return withApiHandler(req, async ({ requestId }) => {
     await enforceRateLimit(req, { keyPrefix: 'products-update', windowMs: 60_000, maxRequests: 30 })
+    enforceSameOriginMutation(req)
 
     const role = await getAdminRole()
     if (!role || !hasPermission(role, 'products:update')) {
@@ -28,6 +31,7 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
 
     const normalizedVariants = variants.map((variant) => ({
+      id: variant.id,
       galleryImages: (() => {
         const gallery = (variant.images ?? []).map((url) => url.trim()).filter(Boolean)
         if (gallery.length > 0) return gallery
@@ -49,97 +53,54 @@ export async function POST(req: NextRequest) {
     // Use product image if provided, else fall back to first variant's first image
     const primaryProductImage = normalizedProductImages[0] ?? product.image ?? normalizedVariantsWithPrimary[0]?.image ?? null
 
-    const productPrice = normalizedVariantsWithPrimary.reduce(
-      (lowest, variant) => Math.min(lowest, variant.price),
-      normalizedVariantsWithPrimary[0].price
-    )
-
     const supabase = getSupabaseAdmin()
 
+    const productPayload = {
+      name: product.name,
+      slug: product.slug,
+      description: product.description ?? null,
+      image: primaryProductImage,
+      images: normalizedProductImages,
+      category: product.category ?? null,
+      subcategory: product.subcategory ?? null,
+      is_active: product.is_active ?? true,
+    }
+
+    const variantPayload = normalizedVariantsWithPrimary.map((variant) => ({
+      id: variant.id,
+      name: variant.name,
+      price: variant.price,
+      compare_at_price: variant.compare_at_price,
+      stock: variant.stock,
+      sku: variant.sku,
+      image: variant.image,
+      images: variant.images,
+    }))
+
     const { error: productError } = await supabase
-      .from('products')
-      .update({
-        name: product.name,
-        slug: product.slug,
-        description: product.description ?? null,
-        image: primaryProductImage,
-        category: product.category ?? null,
-        subcategory: product.subcategory ?? null,
-        price: productPrice,
-        stock: normalizedVariantsWithPrimary.reduce((sum, item) => sum + item.stock, 0),
-        is_active: product.is_active ?? true,
+      .rpc('update_product_with_relations', {
+        p_product_id: productId,
+        p_product: productPayload,
+        p_variants: variantPayload,
       })
-      .eq('id', productId)
 
     if (productError) {
       throw new HttpError(500, productError.message, 'DB_UPDATE_FAILED')
     }
 
-    const { error: clearProductGalleryError } = await supabase
-      .from('product_images')
-      .delete()
-      .eq('product_id', productId)
-
-    if (clearProductGalleryError) {
-      throw new HttpError(500, clearProductGalleryError.message, 'DB_DELETE_PRODUCT_IMAGES_FAILED')
-    }
-
-    if (normalizedProductImages.length > 0) {
-      const { error: insertProductGalleryError } = await supabase.from('product_images').insert(
-        normalizedProductImages.map((url, index) => ({
-          product_id: productId,
-          image_url: url,
-          sort_order: index,
-        }))
-      )
-
-      if (insertProductGalleryError) {
-        throw new HttpError(500, insertProductGalleryError.message, 'DB_INSERT_PRODUCT_IMAGES_FAILED')
-      }
-    }
-
-    const { error: deleteError } = await supabase
-      .from('product_variants')
-      .delete()
-      .eq('product_id', productId)
-
-    if (deleteError) {
-      throw new HttpError(500, deleteError.message, 'DB_DELETE_VARIANTS_FAILED')
-    }
-
-    for (const variant of normalizedVariantsWithPrimary) {
-      const { data: insertedVariant, error: variantError } = await supabase
-        .from('product_variants')
-        .insert({
-          product_id: productId,
-          weight: variant.name,
-          price: variant.price,
-          compare_at_price: variant.compare_at_price,
-          stock: variant.stock,
-          sku: variant.sku,
-          image: variant.images,
-        })
-        .select('id')
-        .single()
-
-      if (variantError || !insertedVariant) {
-        throw new HttpError(500, variantError?.message ?? 'Failed to create variant', 'DB_INSERT_VARIANTS_FAILED')
-      }
-
-      if (variant.images.length > 0) {
-        const { error: variantGalleryError } = await supabase.from('variant_images').insert(
-          variant.images.map((url, index) => ({
-            variant_id: insertedVariant.id,
-            image_url: url,
-            sort_order: index,
-          }))
-        )
-
-        if (variantGalleryError) {
-          throw new HttpError(500, variantGalleryError.message, 'DB_INSERT_VARIANT_IMAGES_FAILED')
-        }
-      }
-    }
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: role,
+      action: 'product.update',
+      entityType: 'product',
+      entityId: productId,
+      requestId,
+      metadata: {
+        name: product.name,
+        slug: product.slug,
+        variantCount: normalizedVariantsWithPrimary.length,
+      },
+    })
 
     return jsonOk({}, { requestId })
   })

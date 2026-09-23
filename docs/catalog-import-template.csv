@@ -1,0 +1,2 @@
+name,slug,description,category,subcategory,variant_name,price,compare_at_price,stock,sku,image_urls,is_active
+Demo Product,demo-product,Short product description,Category,Subcategory,500 g,199,249,10,SKU-001,https://example.com/image.jpg,true

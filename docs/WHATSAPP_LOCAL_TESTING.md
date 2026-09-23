@@ -35,7 +35,7 @@ Your webhook URL is: https://abc123.ngrok-free.app/api/whatsapp/webhook
 1. Go to WhatsApp -> Configuration in Meta dashboard.
 2. Under Webhook click Edit.
 3. Callback URL: paste your ngrok webhook URL.
-4. Verify Token: millco_verify_123
+4. Verify Token: YOUR_WHATSAPP_VERIFY_TOKEN
 5. Click Verify and Save. Meta will call GET on your webhook.
 6. You will see a 200 in your ngrok terminal if verification succeeds.
 7. Click Manage and subscribe to the messages field.
@@ -73,7 +73,7 @@ Test sequence to verify all bot states work:
 After completing the test flow, run these queries in Supabase SQL editor:
 
     -- Check session was created and cleared
-    select phone, step, cart from whatsapp_sessions;
+    select channel, phone, step, cart from chat_sessions where channel = 'whatsapp';
 
     -- Check order was created
     select id, customer_name, customer_address, total_amount,
@@ -91,7 +91,7 @@ Restart npm run dev after changing .env.local.
 Problem: Bot does not reply
 Fix: Check ngrok terminal for incoming POST requests.
 Check VS Code terminal for logged errors.
-Check whatsapp_sessions table to confirm whether a row was created.
+Check the chat_sessions table with channel = 'whatsapp' to confirm whether a row was created.
 
 Problem: Order not saved
 Fix: Check orders table schema matches what bot.ts expects.

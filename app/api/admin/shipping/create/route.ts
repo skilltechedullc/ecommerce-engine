@@ -6,6 +6,8 @@ import { HttpError, jsonOk, parseJson, withApiHandler } from '@/lib/server/api'
 import { parseSchema, createShipmentSchema } from '@/lib/server/schemas'
 import { tenantConfig } from '@/lib/tenant.config'
 import { createShipmentForOrder } from '@/lib/shipping/service'
+import { enforceSameOriginMutation } from '@/lib/server/csrf'
+import { writeAuditLog } from '@/lib/server/audit'
 import type { Address, CreateShipmentInput } from '@/lib/shipping/types'
 
 type OrderRow = {
@@ -42,6 +44,8 @@ function parseAddress(input: string | null, fallbackName: string, fallbackPhone:
 
 export async function POST(req: NextRequest) {
   return withApiHandler(req, async ({ requestId }) => {
+    enforceSameOriginMutation(req)
+
     const role = await getAdminRole()
     if (!role || !hasPermission(role, 'orders:update-status')) {
       throw new HttpError(401, 'Unauthorized', 'UNAUTHORIZED')
@@ -108,6 +112,19 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       throw new HttpError(500, result.error ?? 'Failed to create shipment', 'SHIPMENT_CREATE_FAILED')
     }
+
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: role,
+      action: 'shipment.create',
+      entityType: 'order',
+      entityId: order.id,
+      requestId,
+      metadata: {
+        shipmentId: result.shipmentId,
+        provider: tenantConfig.shipping.provider,
+      },
+    })
 
     return jsonOk({
       shipmentId: result.shipmentId,

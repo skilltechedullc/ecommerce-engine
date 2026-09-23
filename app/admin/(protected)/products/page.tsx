@@ -1,7 +1,9 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import { fetchInternalApi } from '@/lib/server/internalApi'
 import ProductsClient from './ProductsClient'
 
 export default async function AdminProductsPage() {
+  await requireAdminPermission('products:list')
   const { products } = await fetchInternalApi<{
     products: Array<{
       id: string

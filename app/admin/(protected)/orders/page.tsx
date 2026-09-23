@@ -1,3 +1,4 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
 import { fetchInternalApi } from '@/lib/server/internalApi'
@@ -9,6 +10,7 @@ export default async function OrdersPage({
 }: {
   searchParams: Promise<{ scope?: string; status?: string }>
 }) {
+  await requireAdminPermission('orders:list')
   const { scope, status } = await searchParams
   const { orders } = await fetchInternalApi<{
     orders: Array<{
@@ -16,6 +18,7 @@ export default async function OrdersPage({
       customer_name: string | null
       customer_email: string | null
       total_amount: number | null
+      payment_method?: string | null
       razorpay_payment_id?: string | null
       created_at: string | null
       status: string | null
@@ -51,6 +54,9 @@ export default async function OrdersPage({
             Clear filter
           </Link>
         ) : null}
+        <a href="/api/admin/exports/orders" className="admin-button admin-button--secondary admin-button--small">
+          Export CSV
+        </a>
       </section>
 
       <div className="admin-metricGrid">
@@ -87,6 +93,7 @@ export default async function OrdersPage({
                   <th>Customer</th>
                   <th>Amount</th>
                   <th>Status</th>
+                  <th>Payment</th>
                   <th>Payment ID</th>
                   <th>Date</th>
                   <th>Action</th>
@@ -102,6 +109,7 @@ export default async function OrdersPage({
                     </td>
                     <td style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
                     <td><StatusBadge status={order.status ?? 'Pending'} /></td>
+                    <td><span className="admin-badge admin-badge--info">{formatPaymentMethod(order.payment_method)}</span></td>
                     <td><span className="admin-orderCode">{order.razorpay_payment_id ? `${order.razorpay_payment_id.slice(0, 16)}…` : '—'}</span></td>
                     <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td>
@@ -124,9 +132,14 @@ function StatusBadge({ status }: { status: string }) {
   const className = {
     Pending: 'admin-badge admin-badge--neutral',
     Paid: 'admin-badge admin-badge--info',
+    'Payment Failed': 'admin-badge admin-badge--danger',
     Processing: 'admin-badge admin-badge--warning',
     Shipped: 'admin-badge admin-badge--accent',
     Delivered: 'admin-badge admin-badge--success',
+    Cancelled: 'admin-badge admin-badge--neutral',
+    Refunded: 'admin-badge admin-badge--info',
+    'Return Requested': 'admin-badge admin-badge--warning',
+    Returned: 'admin-badge admin-badge--neutral',
   }[status] ?? 'admin-badge admin-badge--neutral'
 
   return (
@@ -134,4 +147,19 @@ function StatusBadge({ status }: { status: string }) {
       {status}
     </span>
   )
+}
+
+function formatPaymentMethod(method?: string | null) {
+  switch (method) {
+    case 'cod':
+      return 'COD'
+    case 'manual':
+      return 'Manual'
+    case 'whatsapp_cod':
+      return 'WhatsApp COD'
+    case 'razorpay':
+      return 'Razorpay'
+    default:
+      return 'Razorpay'
+  }
 }

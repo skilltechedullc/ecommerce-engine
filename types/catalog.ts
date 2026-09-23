@@ -45,6 +45,7 @@ export type ProductInput = {
 }
 
 export type VariantInput = {
+  id?: string
   name: string
   price: number
   compare_at_price?: number | null

@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -26,6 +26,16 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState<'newest' | 'name-asc' | 'price-asc' | 'price-desc' | 'stock-desc'>('newest')
   const [denseMode, setDenseMode] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState('')
+  const [importError, setImportError] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkCategory, setBulkCategory] = useState('')
+  const [bulkStatus, setBulkStatus] = useState<'keep' | 'active' | 'inactive'>('keep')
+  const [bulkStockMode, setBulkStockMode] = useState<'none' | 'set' | 'increase' | 'decrease'>('none')
+  const [bulkStockValue, setBulkStockValue] = useState(0)
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const deferredQuery = useDeferredValue(query)
 
   const categories = useMemo(() => {
@@ -73,12 +83,91 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
   }, [category, deferredQuery, products, sortBy, status])
 
   const hasFilters = Boolean(query.trim()) || status !== 'all' || category !== 'all' || sortBy !== 'newest'
+  const hasProducts = products.length > 0
+  const visibleIds = filteredProducts.map((product) => product.id)
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id))
 
   function clearFilters() {
     setQuery('')
     setStatus('all')
     setCategory('all')
     setSortBy('newest')
+  }
+
+  async function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setImportMessage('')
+    setImportError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await fetch('/api/admin/import/products', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Import failed')
+
+      const importedCount = Number(data.importedCount ?? data.data?.importedCount ?? 0)
+      setImportMessage(`Imported ${importedCount} product${importedCount === 1 ? '' : 's'}.`)
+      router.refresh()
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Import failed')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function toggleProductSelection(id: string) {
+    setSelectedIds((current) => current.includes(id)
+      ? current.filter((item) => item !== id)
+      : [...current, id])
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedIds((current) => {
+      if (allVisibleSelected) return current.filter((id) => !visibleIds.includes(id))
+      return Array.from(new Set([...current, ...visibleIds]))
+    })
+  }
+
+  async function applyBulkUpdate() {
+    if (selectedIds.length === 0) return
+    setBulkSaving(true)
+    setImportError('')
+    setImportMessage('')
+
+    try {
+      const patch: Record<string, unknown> = {}
+      if (bulkCategory.trim()) patch.category = bulkCategory.trim()
+      if (bulkStatus !== 'keep') patch.is_active = bulkStatus === 'active'
+      if (bulkStockMode !== 'none') {
+        patch.stockMode = bulkStockMode
+        patch.stockValue = bulkStockValue
+      }
+
+      const response = await fetch('/api/admin/products/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds: selectedIds, patch }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Bulk update failed')
+
+      const updatedCount = Number(data.updatedCount ?? data.data?.updatedCount ?? selectedIds.length)
+      setImportMessage(`Updated ${updatedCount} product${updatedCount === 1 ? '' : 's'}.`)
+      setSelectedIds([])
+      router.refresh()
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Bulk update failed')
+    } finally {
+      setBulkSaving(false)
+    }
   }
 
   return (
@@ -148,19 +237,89 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
             <Link href="/admin/products/new" className="admin-button admin-button--primary">
               + New Product
             </Link>
+            <a href="/api/admin/exports/products" className="admin-button admin-button--secondary">
+              Export CSV
+            </a>
+            <label className={`admin-button admin-button--secondary${importing ? ' is-disabled' : ''}`}>
+              {importing ? 'Importing...' : 'Import CSV/XLSX'}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleImportFile}
+                disabled={importing}
+                style={{ display: 'none' }}
+              />
+            </label>
           </div>
         </div>
         <p className="admin-sectionText" style={{ marginTop: '-2px' }}>
           {filteredProducts.length} products shown. Tip: click any row to edit faster.
         </p>
+        {importMessage ? <p className="admin-inlineMessage admin-inlineMessage--success">{importMessage}</p> : null}
+        {importError ? <p className="admin-inlineMessage admin-inlineMessage--error">{importError}</p> : null}
       </section>
+
+      {selectedIds.length > 0 ? (
+        <section className="admin-surface admin-toolbarCard">
+          <div>
+            <p className="admin-sectionEyebrow">Bulk edit</p>
+            <h2 className="admin-sectionTitle">{selectedIds.length} selected</h2>
+            <p className="admin-sectionText">Apply status, category, or stock changes to selected products.</p>
+          </div>
+          <div className="admin-filterGrid">
+            <label className="admin-inputShell admin-inputShell--compact">
+              <span className="admin-inputShell__label">Category</span>
+              <input value={bulkCategory} onChange={(event) => setBulkCategory(event.target.value)} placeholder="Leave blank to keep" />
+            </label>
+            <label className="admin-inputShell admin-inputShell--compact">
+              <span className="admin-inputShell__label">Status</span>
+              <select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value as 'keep' | 'active' | 'inactive')}>
+                <option value="keep">Keep current</option>
+                <option value="active">Set active</option>
+                <option value="inactive">Set inactive</option>
+              </select>
+            </label>
+            <label className="admin-inputShell admin-inputShell--compact">
+              <span className="admin-inputShell__label">Stock mode</span>
+              <select value={bulkStockMode} onChange={(event) => setBulkStockMode(event.target.value as 'none' | 'set' | 'increase' | 'decrease')}>
+                <option value="none">No stock change</option>
+                <option value="set">Set stock</option>
+                <option value="increase">Increase stock</option>
+                <option value="decrease">Decrease stock</option>
+              </select>
+            </label>
+            <label className="admin-inputShell admin-inputShell--compact">
+              <span className="admin-inputShell__label">Stock value</span>
+              <input type="number" min="0" value={bulkStockValue} onChange={(event) => setBulkStockValue(Number(event.target.value))} />
+            </label>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button type="button" className="admin-button admin-button--secondary" onClick={() => setSelectedIds([])}>
+              Clear Selection
+            </button>
+            <button type="button" className="admin-button admin-button--primary" onClick={applyBulkUpdate} disabled={bulkSaving}>
+              {bulkSaving ? 'Applying...' : 'Apply Bulk Update'}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="admin-surface admin-tableCard">
         {filteredProducts.length === 0 ? (
           <div className="admin-emptyState">
             <div className="admin-emptyState__icon">◎</div>
-            <h3>No products match these filters</h3>
-            <p>Adjust the search or filters, or add a new product to grow your catalog.</p>
+            <h3>{hasProducts ? 'No products match these filters' : 'No products yet'}</h3>
+            <p>
+              {hasProducts
+                ? 'Adjust the search or filters, or add a new product to grow your catalog.'
+                : 'Add your first product with at least one variant, price, stock count, and product image.'}
+            </p>
+            {!hasProducts ? (
+              <Link href="/admin/products/new" className="admin-button admin-button--primary" style={{ marginTop: '14px' }}>
+                Add First Product
+              </Link>
+            ) : null}
           </div>
         ) : (
           <div className="admin-tableWrap">
@@ -168,6 +327,14 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
               <thead>
                 <tr>
                   <th>Product</th>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleVisibleSelection}
+                      aria-label="Select all visible products"
+                    />
+                  </th>
                   <th>Category</th>
                   <th>Status</th>
                   <th>Stock</th>
@@ -225,6 +392,15 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
                             <p className="admin-tableProduct__meta">/products/{product.slug}</p>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(product.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={`Select ${product.name}`}
+                        />
                       </td>
                       <td>{product.category ?? 'Uncategorized'}</td>
                       <td>

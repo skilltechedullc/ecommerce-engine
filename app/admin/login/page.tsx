@@ -1,15 +1,20 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useEffect, useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { storeConfig } from '@/lib/config'
 import { tenantConfig } from '@/lib/tenant.config'
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    document.title = `${storeConfig.brandName} Admin`
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -19,7 +24,7 @@ export default function AdminLoginPage() {
     const res = await fetch('/api/admin-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email: email || undefined, password }),
     })
 
     if (res.ok) {
@@ -65,6 +70,29 @@ export default function AdminLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', letterSpacing: '0.5px' }}>
+              EMAIL
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Optional for local single-password mode"
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                fontSize: '14px',
+                border: '1.5px solid #D1D5DB',
+                borderRadius: '8px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                color: '#111827',
+                backgroundColor: '#FAFAFA',
+              }}
+            />
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px', letterSpacing: '0.5px' }}>
               PASSWORD

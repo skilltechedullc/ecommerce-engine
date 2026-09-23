@@ -1,9 +1,11 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import ProductForm from '../ProductForm'
 import { fetchInternalApi } from '@/lib/server/internalApi'
 import { buildFormOptions } from '../formOptions'
 
 export default async function NewProductPage() {
+  await requireAdminPermission('products:create')
   const { products } = await fetchInternalApi<{
     products: Array<{
       category: string | null

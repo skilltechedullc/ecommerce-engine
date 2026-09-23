@@ -2,7 +2,11 @@ import { Resend } from 'resend'
 import { storeConfig } from '@/lib/config'
 import { tenantConfig } from '@/lib/tenant.config'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error('Email provider is not configured')
+  return new Resend(key)
+}
 const fromAddress = process.env.EMAIL_FROM_ADDRESS ?? 'orders@example.com'
 const fromDisplay = `${storeConfig.brandName} <${fromAddress}>`
 
@@ -146,12 +150,13 @@ export async function sendOrderConfirmationEmail(
     </p>
     <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— ${tenantConfig.marketing.email.teamSignatureLabel} ${storeConfig.brandName}</p>`
 
-  await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: fromDisplay,
     to: order.customer_email,
     subject: `Order Confirmed — #${shortId}`,
     html: baseLayout(body),
   })
+  if (error) throw new Error(error.message)
 }
 
 // ─── Admin new-order notification email ─────────────────────────────────────
@@ -207,12 +212,13 @@ export async function sendAdminNewOrderEmail(
       </a>
     </div>`
 
-  await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: fromDisplay,
     to: adminEmail,
     subject: `New Order #${shortId} — ${storeConfig.currencySymbol}${order.total_amount.toLocaleString(tenantConfig.region.numberLocale)}`,
     html: baseLayout(body),
   })
+  if (error) throw new Error(error.message)
 }
 
 function statusCopy(type: OrderStatusEmailType): {
@@ -272,10 +278,11 @@ export async function sendOrderStatusUpdateEmail(
     </p>
     <p style="margin:0;font-size:14px;color:#374151;font-weight:500;">— ${tenantConfig.marketing.email.teamSignatureLabel} ${storeConfig.brandName}</p>`
 
-  await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: fromDisplay,
     to: order.customer_email,
     subject: `${copy.subjectPrefix} — #${shortId}`,
     html: baseLayout(body),
   })
+  if (error) throw new Error(error.message)
 }

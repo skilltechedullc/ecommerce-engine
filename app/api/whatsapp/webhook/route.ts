@@ -1,4 +1,6 @@
 import { handleIncomingMessage } from '@/lib/whatsapp/bot'
+import { HttpError } from '@/lib/server/api'
+import { verifyMetaWebhookSignature } from '@/lib/server/metaWebhook'
 
 export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
@@ -15,7 +17,13 @@ export async function GET(req: Request): Promise<Response> {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const body = (await req.json()) as {
+    const rawBody = await req.text()
+    verifyMetaWebhookSignature({
+      rawBody,
+      signatureHeader: req.headers.get('x-hub-signature-256'),
+    })
+
+    const body = JSON.parse(rawBody) as {
       entry?: Array<{
         changes?: Array<{
           value?: {
@@ -47,6 +55,10 @@ export async function POST(req: Request): Promise<Response> {
     await handleIncomingMessage(phone, text)
     return new Response('OK', { status: 200 })
   } catch (error) {
+    if (error instanceof HttpError) {
+      return new Response(error.message, { status: error.status })
+    }
+
     console.error('[whatsapp] webhook POST failed', error)
     return new Response('OK', { status: 200 })
   }

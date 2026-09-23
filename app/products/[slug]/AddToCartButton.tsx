@@ -39,6 +39,7 @@ export default function AddToCartButton({
   const [selectedId, setSelectedId] = useState<string>(
     hasVariants ? defaultVariant?.id ?? '' : ''
   )
+  const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
   const selectedVariant = variants.find((v) => v.id === selectedId) ?? defaultVariant
@@ -62,7 +63,7 @@ export default function AddToCartButton({
       variant_name: hasVariants ? selectedVariant?.weight ?? 'Default' : 'Default',
       name: product.name,
       price: displayPrice,
-      quantity: 1,
+      quantity,
     })
     emitCartUpdated()
     window.dispatchEvent(new Event('cart-open'))
@@ -117,6 +118,20 @@ export default function AddToCartButton({
         {moneyWithSymbol(displayPrice)}
       </div>
 
+      <div
+        style={{
+          margin: '-10px 0 22px',
+          display: 'grid',
+          gap: '6px',
+          color: '#52685c',
+          fontSize: '13px',
+          lineHeight: 1.5,
+        }}
+      >
+        <span>Delivery estimate is confirmed after checkout.</span>
+        <span>Free-shipping eligibility is calculated in your cart.</span>
+      </div>
+
       {/* Description */}
       {product.description && (
         <p
@@ -153,7 +168,10 @@ export default function AddToCartButton({
             {variants.map((v) => (
               <button
                 key={v.id}
-                onClick={() => setSelectedId(v.id)}
+                onClick={() => {
+                  setSelectedId(v.id)
+                  setQuantity(1)
+                }}
                 style={{
                   padding: '8px 20px',
                   borderRadius: '8px',
@@ -224,6 +242,33 @@ export default function AddToCartButton({
           </span>
         )}
       </div>
+
+      {inStock ? (
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#52685c', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Quantity
+          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #d9e7df', borderRadius: '12px', overflow: 'hidden' }}>
+            <button
+              type="button"
+              onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+              style={{ width: '42px', height: '42px', border: 0, background: '#f4faf6', cursor: 'pointer', fontWeight: 800 }}
+              aria-label="Decrease quantity"
+            >
+              -
+            </button>
+            <span style={{ minWidth: '42px', textAlign: 'center', fontWeight: 800 }}>{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((current) => Math.min(displayStock, current + 1))}
+              style={{ width: '42px', height: '42px', border: 0, background: '#f4faf6', cursor: 'pointer', fontWeight: 800 }}
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Add to cart button */}
       <button

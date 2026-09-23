@@ -1,3 +1,7 @@
+# Ecommerce Engine
+
+Fresh demo rollout: see [Fresh deployment](docs/FRESH_DEPLOYMENT.md) for current setup, verification commands and known limits. Historical phase reports below are not a current launch sign-off.
+
 # Millco Shop
 
 Production-ready single-tenant ecommerce engine built on Next.js App Router with Supabase, Razorpay, and Resend.

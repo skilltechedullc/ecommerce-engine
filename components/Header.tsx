@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
 import { getCartSnapshot, subscribeToCart, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { trackEvent } from '@/lib/analytics'
@@ -21,9 +22,15 @@ const NAV_ITEMS = [
 ] as const
 
 export default function Header() {
+  const pathname = usePathname()
   const cart = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerSnapshot)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMenuOpen(false), 0)
+    return () => window.clearTimeout(timer)
+  }, [pathname])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -32,10 +39,11 @@ export default function Header() {
       if (event.key === 'Escape') setMenuOpen(false)
     }
 
+    const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKeyDown)
     return () => {
-      document.body.style.overflow = ''
+      document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [menuOpen])
@@ -58,8 +66,8 @@ export default function Header() {
             <Image
               src={storeConfig.logoUrl}
               alt={storeConfig.brandName}
-              width={180}
-              height={64}
+              width={148}
+              height={53}
               priority
               className={styles.brandLogo}
             />

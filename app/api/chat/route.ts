@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NextRequest } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { HttpError } from '@/lib/server/api'
+import { enforceRateLimit } from '@/lib/server/rateLimit'
 import { tenantConfig } from '@/lib/tenant.config'
 
 export const runtime = 'nodejs'
@@ -31,49 +33,10 @@ type ProductRow = {
   product_variants: ProductVariantRow[] | null
 }
 
-type RateLimitBucket = {
-  count: number
-  windowStart: number
-}
-
-declare global {
-  var __aiChatRateLimitStore: Map<string, RateLimitBucket> | undefined
-}
-
 const WINDOW_MS = 60 * 60 * 1000
 const MAX_REQUESTS_PER_WINDOW = 20
 const MAX_MESSAGES = 20
 const MAX_CONTENT_LENGTH = 1000
-
-const rateLimitStore = globalThis.__aiChatRateLimitStore ?? new Map<string, RateLimitBucket>()
-if (!globalThis.__aiChatRateLimitStore) {
-  globalThis.__aiChatRateLimitStore = rateLimitStore
-}
-
-function getClientIp(req: Request): string {
-  const forwardedFor = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-  const realIp = req.headers.get('x-real-ip')?.trim()
-  return forwardedFor || realIp || 'unknown'
-}
-
-function enforceInMemoryRateLimit(ip: string) {
-  const now = Date.now()
-  const existing = rateLimitStore.get(ip)
-
-  if (!existing || now - existing.windowStart >= WINDOW_MS) {
-    rateLimitStore.set(ip, { count: 1, windowStart: now })
-    return { allowed: true, retryAfterSeconds: 0 }
-  }
-
-  if (existing.count >= MAX_REQUESTS_PER_WINDOW) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((WINDOW_MS - (now - existing.windowStart)) / 1000))
-    return { allowed: false, retryAfterSeconds }
-  }
-
-  existing.count += 1
-  rateLimitStore.set(ip, existing)
-  return { allowed: true, retryAfterSeconds: 0 }
-}
 
 function assertChatMessages(value: unknown): ChatMessage[] {
   if (!Array.isArray(value)) {
@@ -245,20 +208,14 @@ function jsonError(message: string, status: number, code: string, details?: unkn
   )
 }
 
-export async function POST(req: Request): Promise<Response> {
-  const ip = getClientIp(req)
-  const rateLimit = enforceInMemoryRateLimit(ip)
-
-  if (!rateLimit.allowed) {
-    return jsonError(
-      'Too many chat requests right now. Please try again in a little while.',
-      429,
-      'RATE_LIMITED',
-      { retryAfterSeconds: rateLimit.retryAfterSeconds }
-    )
-  }
-
+export async function POST(req: NextRequest): Promise<Response> {
   try {
+    await enforceRateLimit(req, {
+      keyPrefix: 'ai-chat',
+      windowMs: WINDOW_MS,
+      maxRequests: MAX_REQUESTS_PER_WINDOW,
+    })
+
     const body = (await req.json()) as ChatRequestBody
     const messages = assertChatMessages(body?.messages)
 

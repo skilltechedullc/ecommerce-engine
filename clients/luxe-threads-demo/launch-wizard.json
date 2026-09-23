@@ -1,0 +1,43 @@
+{
+  "locale": "en-AE",
+  "state": "Dubai",
+  "packageTier": "Business Store",
+  "countryCode": "AE",
+  "countryName": "United Arab Emirates",
+  "ownerEmail": "owner@luxethreads.example",
+  "addons": {
+    "multiCurrency": false,
+    "aiAssistant": false,
+    "analytics": true,
+    "loyalty": true,
+    "shippingIntegrations": false,
+    "reviews": true,
+    "multiLanguage": true,
+    "whatsappStore": true
+  },
+  "providers": {
+    "email": "resend",
+    "whatsapp": "Manual WhatsApp link",
+    "shipping": "manual",
+    "payment": "razorpay",
+    "supabase": "Client-owned Supabase"
+  },
+  "deploymentTarget": "Vercel",
+  "currency": "AED",
+  "starterCategories": "New arrivals, Abayas, Dresses, Handbags, Accessories, Sale",
+  "storeName": "Luxe Threads Demo",
+  "contactPhone": "+971501234567",
+  "postalCode": "00000",
+  "whatsappNumber": "971501234567",
+  "themePreset": "boutique",
+  "contactEmail": "support@luxethreads.example",
+  "niche": "Fashion boutique",
+  "city": "Dubai",
+  "launchNotes": "Demo store created from the admin launch wizard flow for a fashion boutique niche.",
+  "currencySymbol": "AED",
+  "domain": "shop.luxethreads.example",
+  "ownerName": "Demo Boutique Owner",
+  "ownerPhone": "+971501234567",
+  "slug": "luxe-threads-demo",
+  "generatedAt": "2026-05-28T17:27:27.808Z"
+}

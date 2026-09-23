@@ -36,6 +36,7 @@ export default function VariantSelector({
 }: Props) {
   const defaultVariantId = variants.find((variant) => variant.stock > 0)?.id ?? variants[0]?.id ?? ''
   const [internalSelectedId, setInternalSelectedId] = useState<string>(defaultVariantId)
+  const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
   const resolvedSelectedId = selectedId ?? (variants.some((variant) => variant.id === internalSelectedId) ? internalSelectedId : defaultVariantId)
@@ -53,12 +54,13 @@ export default function VariantSelector({
   const inStock = stock > 0
   const canPurchase = Boolean(selected) && inStock
   const stickyVariantLabel = selected ? (selected.name ?? selected.weight ?? 'Selected variant') : 'Select a variant'
-  const stickyMetaLine = selected ? `${stickyVariantLabel} · ${moneyWithSymbol(price)}` : stickyVariantLabel
+  const stickyMetaLine = selected ? `${stickyVariantLabel} - ${moneyWithSymbol(price)}` : stickyVariantLabel
 
   function handleVariantSelect(variantId: string) {
     if (selectedId == null) {
       setInternalSelectedId(variantId)
     }
+    setQuantity(1)
     onSelectVariant?.(variantId)
   }
 
@@ -72,7 +74,7 @@ export default function VariantSelector({
       variant_name: selected.name ?? selected.weight ?? 'Variant',
       name: productName,
       price,
-      quantity: 1,
+      quantity,
       image: firstImageFromSources(selected.images, selected.image) ?? undefined,
     })
     emitCartUpdated()
@@ -88,6 +90,11 @@ export default function VariantSelector({
         {compareAtPrice && compareAtPrice > price ? (
           <span className={styles.comparePrice}>{moneyWithSymbol(compareAtPrice)}</span>
         ) : null}
+      </div>
+
+      <div className={styles.deliveryNotes}>
+        <span>Delivery estimate is confirmed at checkout.</span>
+        <span>Free-shipping eligibility is calculated in your cart.</span>
       </div>
 
       {variants.length > 0 ? (
@@ -124,11 +131,36 @@ export default function VariantSelector({
         {!selected ? (
           <span className={styles.stockHint}>Select a variant to continue</span>
         ) : inStock ? (
-          <span className={styles.stockIn}>In stock{stock <= 10 ? ` — only ${stock} left` : ''}</span>
+          <span className={styles.stockIn}>In stock{stock <= 10 ? ` - only ${stock} left` : ''}</span>
         ) : (
           <span className={styles.stockOut}>Out of stock</span>
         )}
       </div>
+
+      {inStock ? (
+        <div className={styles.quantityRow}>
+          <span className={styles.quantityLabel}>Quantity</span>
+          <div className={styles.quantityControl}>
+            <button
+              type="button"
+              onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+              disabled={quantity <= 1}
+              aria-label="Decrease quantity"
+            >
+              -
+            </button>
+            <strong>{quantity}</strong>
+            <button
+              type="button"
+              onClick={() => setQuantity((current) => Math.min(stock, current + 1))}
+              disabled={quantity >= stock}
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <button
         type="button"
@@ -143,7 +175,7 @@ export default function VariantSelector({
             </svg>
             Added to Cart!
           </>
-        ) : !selected ? 'Select Variant' : !inStock ? 'Out of Stock' : 'Add to Cart'}
+        ) : !selected ? 'Select Variant' : !inStock ? 'Out of Stock' : `Add ${quantity} to Cart`}
       </button>
 
       <div className={styles.trustStrip}>
@@ -159,7 +191,7 @@ export default function VariantSelector({
           <strong>{stickyMetaLine}</strong>
         </div>
         <button type="button" onClick={handleAdd} disabled={!canPurchase} className={styles.stickyButton}>
-          {added ? 'Added' : 'Add to Cart'}
+          {added ? 'Added' : `Add ${quantity}`}
         </button>
       </div>
     </div>

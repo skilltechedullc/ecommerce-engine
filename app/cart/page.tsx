@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { getCartSnapshot, removeFromCart, updateQuantity, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
+import { calculateShippingRate } from '@/lib/shipping/rates'
 import { buildTenantWhatsAppUrl, tenantConfig } from '@/lib/tenant.config'
 import styles from './cart.module.css'
 
@@ -41,6 +42,7 @@ export default function CartPage() {
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shippingQuote = calculateShippingRate(total)
   const cartProductIds = useMemo(() => new Set(cart.map((item) => item.product_id)), [cart])
 
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function CartPage() {
                 <span>{tenantConfig.region.shippingCoverageLabel}</span>
               </div>
               <div className={styles.heroStat}>
-                <strong>{moneyWithSymbol(total)}</strong>
+                <strong>{moneyWithSymbol(shippingQuote.total)}</strong>
                 <span>Current cart value</span>
               </div>
             </div>
@@ -96,7 +98,14 @@ export default function CartPage() {
 
           <aside className={styles.miniBrand}>
             <div className={styles.logoRow}>
-              <Image src={storeConfig.logoUrl} alt={storeConfig.brandName} width={82} height={82} unoptimized />
+              <Image
+                src={storeConfig.logoUrl}
+                alt={storeConfig.brandName}
+                width={82}
+                height={82}
+                unoptimized
+                style={{ width: '82px', height: 'auto' }}
+              />
               <div className={styles.logoMeta}>
                 <span>{storeConfig.brandName}</span>
                 <strong>{tenantConfig.marketing.cart.miniBrandTitle}</strong>
@@ -195,7 +204,7 @@ export default function CartPage() {
                 </div>
                 <div className={styles.summaryRow}>
                   <span>Shipping</span>
-                  <strong>Free</strong>
+                  <strong>{shippingQuote.shippingAmount > 0 ? moneyWithSymbol(shippingQuote.shippingAmount) : 'Free'}</strong>
                 </div>
                 <div className={styles.summaryRow}>
                   <span>{tenantConfig.marketing.cart.fulfilmentLabel}</span>
@@ -205,7 +214,7 @@ export default function CartPage() {
               <div className={styles.divider} />
               <div className={styles.totalRow}>
                 <span>Total</span>
-                <span>{moneyWithSymbol(total)}</span>
+                <span>{moneyWithSymbol(shippingQuote.total)}</span>
               </div>
 
               <p className={styles.urgencyNote}>Items are not reserved until checkout.</p>
@@ -270,7 +279,7 @@ export default function CartPage() {
           <div className={styles.mobileStickyCheckout}>
             <div className={styles.mobileStickyMeta}>
               <span>{itemCount} item{itemCount === 1 ? '' : 's'}</span>
-              <strong>{moneyWithSymbol(total)}</strong>
+              <strong>{moneyWithSymbol(shippingQuote.total)}</strong>
             </div>
             <Link href="/checkout" className={styles.mobileStickyButton}>
               Continue to Secure Checkout

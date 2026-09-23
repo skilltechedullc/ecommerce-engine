@@ -272,6 +272,8 @@ export default function AiChatWidget() {
     await sendMessage(value)
   }
 
+  if (pathname?.startsWith('/admin')) return null
+
   return (
     <>
       <div ref={rootRef} className={`${styles.root} ${isLifted ? styles.lifted : ''}`}>

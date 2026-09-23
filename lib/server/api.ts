@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/server/logger'
 
 export class HttpError extends Error {
   status: number
@@ -111,6 +112,13 @@ export async function withApiHandler(
         requestId,
       })
     }
+
+    logger.error('api.unhandled_error', {
+      requestId,
+      method: req.method,
+      path: req.nextUrl.pathname,
+      error,
+    })
 
     return jsonError('Internal server error', {
       status: 500,

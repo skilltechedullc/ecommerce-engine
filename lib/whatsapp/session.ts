@@ -19,11 +19,15 @@ export type Session = {
 
 type SessionRow = {
   phone: string
+  channel: string | null
   step: string | null
   cart: unknown
   customer_name: string | null
   customer_address: string | null
 }
+
+const WHATSAPP_CHANNEL = 'whatsapp'
+const SESSIONS_TABLE = 'chat_sessions'
 
 const defaultSession = (phone: string): Session => ({
   phone,
@@ -78,8 +82,9 @@ export async function getSession(phone: string): Promise<Session> {
   const supabaseAdmin = getSupabaseAdmin()
 
   const { data, error } = await supabaseAdmin
-    .from('whatsapp_sessions')
-    .select('phone, step, cart, customer_name, customer_address')
+    .from(SESSIONS_TABLE)
+    .select('phone, channel, step, cart, customer_name, customer_address')
+    .eq('channel', WHATSAPP_CHANNEL)
     .eq('phone', phone)
     .maybeSingle<SessionRow>()
 
@@ -87,8 +92,8 @@ export async function getSession(phone: string): Promise<Session> {
   if (data) return toSession(phone, data)
 
   const { error: upsertError } = await supabaseAdmin
-    .from('whatsapp_sessions')
-    .upsert({ phone, step: 'idle', cart: [] }, { onConflict: 'phone' })
+    .from(SESSIONS_TABLE)
+    .upsert({ channel: WHATSAPP_CHANNEL, phone, step: 'idle', cart: [] }, { onConflict: 'channel,phone' })
 
   if (upsertError) throw upsertError
 
@@ -97,7 +102,7 @@ export async function getSession(phone: string): Promise<Session> {
 
 export async function updateSession(phone: string, updates: Partial<Session>): Promise<void> {
   const supabaseAdmin = getSupabaseAdmin()
-  const payload: Record<string, unknown> = { phone }
+  const payload: Record<string, unknown> = { channel: WHATSAPP_CHANNEL, phone }
 
   if (updates.step !== undefined) payload.step = updates.step
   if (updates.cart !== undefined) payload.cart = updates.cart
@@ -109,8 +114,8 @@ export async function updateSession(phone: string, updates: Partial<Session>): P
   }
 
   const { error } = await supabaseAdmin
-    .from('whatsapp_sessions')
-    .upsert(payload, { onConflict: 'phone' })
+    .from(SESSIONS_TABLE)
+    .upsert(payload, { onConflict: 'channel,phone' })
 
   if (error) throw error
 }

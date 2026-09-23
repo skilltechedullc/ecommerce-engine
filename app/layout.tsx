@@ -1,22 +1,9 @@
 import type { Metadata } from 'next'
-import { Geist, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import RouteChrome from '@/components/RouteChrome'
 import AiChatWidgetMount from '@/components/AiChatWidgetMount'
 import { storeConfig } from '@/lib/config'
 import { tenantConfig } from '@/lib/tenant.config'
-
-const geistSans = Geist({
-  variable: '--font-geist',
-  subsets: ['latin'],
-})
-
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-})
 
 export const metadata: Metadata = {
   metadataBase: new URL(storeConfig.siteUrl),
@@ -60,15 +47,16 @@ export default function RootLayout({
     '--tenant-admin-accent': tenantConfig.branding.colors.adminAccent,
     '--tenant-admin-sidebar-start': tenantConfig.branding.colors.adminSidebarGradientStart,
     '--tenant-admin-sidebar-end': tenantConfig.branding.colors.adminSidebarGradientEnd,
+    '--font-geist': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    '--font-playfair': 'Georgia, "Times New Roman", serif',
   } as React.CSSProperties
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${playfair.variable}`}>
+    <html lang="en">
       <body
         style={{
           ...tenantCssVariables,
-          fontFamily:
-            'var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          fontFamily: 'var(--font-geist)',
           backgroundColor: tenantConfig.branding.colors.background,
           color: tenantConfig.branding.colors.foreground,
           display: 'flex',

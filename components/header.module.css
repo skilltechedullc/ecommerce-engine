@@ -11,7 +11,7 @@
 .wrap {
   width: min(1200px, 100%);
   margin: 0 auto;
-  min-height: 84px;
+  min-height: 72px;
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -22,7 +22,7 @@
 @media (max-width: 640px) {
   .wrap {
     padding: 0 16px;
-    min-height: 76px;
+    min-height: 66px;
   }
 }
 
@@ -35,13 +35,13 @@
 }
 
 .brandLogo {
-  width: 180px;
+  width: 148px;
   height: auto;
 }
 
 @media (max-width: 640px) {
   .brandLogo {
-    width: 170px;
+    width: 132px;
     height: auto;
   }
 }

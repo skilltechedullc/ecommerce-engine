@@ -31,6 +31,18 @@ type Props = {
   brandName: string
 }
 
+function getProductTone(category?: string | null) {
+  const value = (category ?? '').toLowerCase()
+
+  if (value.includes('spice') || value.includes('masala')) return 'spice'
+  if (value.includes('oil')) return 'oil'
+  if (value.includes('honey') || value.includes('sweet')) return 'sweet'
+  if (value.includes('pickle') || value.includes('condiment')) return 'pickle'
+  if (value.includes('rice') || value.includes('flour') || value.includes('breakfast')) return 'grain'
+  if (value.includes('coconut')) return 'coconut'
+  return 'natural'
+}
+
 export default function ProductDetailExperience({
   productId,
   productName,
@@ -62,6 +74,7 @@ export default function ProductDetailExperience({
     if (!activeImage) return activeGallery[0] ?? null
     return activeGallery.includes(activeImage) ? activeImage : activeGallery[0] ?? null
   }, [activeGallery, activeImage])
+  const placeholderTone = getProductTone(productCategory)
 
   return (
     <div className={styles.mainWrap}>
@@ -70,12 +83,12 @@ export default function ProductDetailExperience({
           {displayImage ? (
             <Image src={displayImage} alt={productName} fill unoptimized className={styles.galleryImage} />
           ) : (
-            <div className={styles.imagePlaceholder}>
-              <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#7a9285" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
+            <div className={styles.imagePlaceholder} data-tone={placeholderTone}>
+              <div className={styles.placeholderPack}>
+                <span>{brandName}</span>
+                <strong>{productName}</strong>
+                <small>{productCategory ?? 'Natural Foods'}</small>
+              </div>
             </div>
           )}
         </div>
@@ -99,7 +112,14 @@ export default function ProductDetailExperience({
         <section className={styles.summaryCard}>
           <div className={styles.brandRow}>
             <div className={styles.brandMark}>
-              <Image src={logoUrl} alt={brandName} width={46} height={46} unoptimized />
+              <Image
+                src={logoUrl}
+                alt={brandName}
+                width={46}
+                height={46}
+                unoptimized
+                style={{ width: '46px', height: 'auto' }}
+              />
             </div>
             <div className={styles.brandMeta}>
               <span>Certified Brand</span>
@@ -109,7 +129,7 @@ export default function ProductDetailExperience({
 
           {productCategory && (
             <p className={styles.category}>
-              {productCategory}{productSubcategory ? ` · ${productSubcategory}` : ''}
+              {productCategory}{productSubcategory ? ` - ${productSubcategory}` : ''}
             </p>
           )}
 
@@ -137,7 +157,7 @@ export default function ProductDetailExperience({
           <div className={styles.trustList}>
             {[...tenantConfig.marketing.productDetail.trustItems, `Carefully packed by ${brandName}`].map((text) => (
               <div key={text} className={styles.trustItem}>
-                <span className={styles.trustItemDot}>✓</span>
+                <span className={styles.trustItemDot} aria-hidden="true" />
                 <span>{text}</span>
               </div>
             ))}

@@ -42,3 +42,10 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local runtime logs and deployment secrets
+.next-dev.*.log
+.env.fresh
+
+/test-results/
+/playwright-report/

@@ -1,3 +1,4 @@
+import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ProductForm from '../ProductForm'
@@ -6,6 +7,7 @@ import { buildFormOptions } from '../formOptions'
 import type { Product, ProductVariant } from '@/types/catalog'
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPermission('products:update')
   const { id } = await params
   let payload: { product: Product & { product_variants: ProductVariant[] } }
   let productListPayload: {

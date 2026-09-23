@@ -62,7 +62,7 @@ create index if not exists shipments_provider_idx on public.shipments(provider);
 DROP TRIGGER IF EXISTS shipments_set_updated_at ON public.shipments;
 create trigger shipments_set_updated_at
   before update on public.shipments
-  for each row execute function extensions.moddatetime(updated_at);
+  for each row execute function public.set_updated_at();
 
 -- Verification
 select table_name from information_schema.tables

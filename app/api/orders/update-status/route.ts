@@ -5,16 +5,20 @@ import { hasPermission } from '@/lib/server/permissions'
 import { HttpError, jsonOk, parseJson, withApiHandler } from '@/lib/server/api'
 import { parseSchema, orderStatusSchema } from '@/lib/server/schemas'
 import { ORDER_STATUS_PROGRESSION, type OrderStatus } from '@/lib/orderStatus'
+import { enforceSameOriginMutation } from '@/lib/server/csrf'
+import { writeAuditLog } from '@/lib/server/audit'
 
 export async function POST(req: NextRequest) {
   return withApiHandler(req, async ({ requestId }) => {
+    enforceSameOriginMutation(req)
+
     const role = await getAdminRole()
     if (!role || !hasPermission(role, 'orders:update-status')) {
       throw new HttpError(401, 'Unauthorized', 'UNAUTHORIZED')
     }
 
     const body = await parseJson<unknown>(req)
-    const { orderId, newStatus } = parseSchema(orderStatusSchema, body)
+    const { orderId, newStatus, reason } = parseSchema(orderStatusSchema, body)
 
     const supabase = getSupabaseAdmin()
     const { data: order, error: fetchError } = await supabase
@@ -50,6 +54,20 @@ export async function POST(req: NextRequest) {
     if (error) {
       throw new HttpError(500, error.message, 'DB_UPDATE_FAILED')
     }
+
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: role,
+      action: 'order.status_update',
+      entityType: 'order',
+      entityId: orderId,
+      requestId,
+      metadata: {
+        previousStatus: currentStatus,
+        newStatus,
+        reason: reason || undefined,
+      },
+    })
 
     return jsonOk({ orderId, status: newStatus }, { requestId })
   })

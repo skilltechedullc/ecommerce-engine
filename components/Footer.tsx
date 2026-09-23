@@ -74,8 +74,8 @@ export default function Footer() {
                 unoptimized
                 style={{
                   objectFit: 'contain',
-                  height: '74px',
-                  width: 'auto',
+                  width: '220px',
+                  height: 'auto',
                 }}
               />
             </div>

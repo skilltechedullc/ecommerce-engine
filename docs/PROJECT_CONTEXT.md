@@ -1,3 +1,5 @@
+> Current demo branch, deployment and priorities: [PROJECT_STATUS.md](PROJECT_STATUS.md). The record below is historical context; it is not the current demo release sign-off.
+
 # Project Context for Maintainers
 
 This document captures implementation-level context and operational knowledge for future contributors.

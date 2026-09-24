@@ -1,3 +1,5 @@
+> Current demo branch, deployment and priorities: [PROJECT_STATUS.md](PROJECT_STATUS.md). The record below is historical context; it is not the current demo release sign-off.
+
 # Deployment Branch Confirmation
 
 The production branch for `shop.millco.in` cannot be confirmed from local repository files alone.

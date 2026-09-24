@@ -1,10 +1,12 @@
 # Ecommerce Engine
 
+Start here: [Current project status and next steps](docs/PROJECT_STATUS.md) — active branch, verified demo, completed work, limitations and the plan before Millco.
+
 Fresh demo rollout: see [Fresh deployment](docs/FRESH_DEPLOYMENT.md) for current setup, verification commands and known limits. Historical phase reports below are not a current launch sign-off.
 
-# Millco Shop
+## Overview
 
-Production-ready single-tenant ecommerce engine built on Next.js App Router with Supabase, Razorpay, and Resend.
+Single-tenant ecommerce engine built on Next.js App Router with Supabase, Razorpay, and Resend. The current hosted release is a neutral test-mode demo; see the status record for verified scope and outstanding work.
 
 This repository is designed to be tenant-configurable via environment variables, without hardcoding brand/currency/business identity into application logic.
 

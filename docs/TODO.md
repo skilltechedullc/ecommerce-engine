@@ -1,3 +1,5 @@
+> Current demo branch, deployment and priorities: [PROJECT_STATUS.md](PROJECT_STATUS.md). The record below is historical context; it is not the current demo release sign-off.
+
 # Ecommerce Engine TODO
 
 Current rollout: a fresh neutral demo on new Vercel/Supabase projects. The old Millco deployment is out of scope. Historical checkmarks below include scaffolding and documentation, not always completed integrations; use FRESH_DEPLOYMENT.md for the supported release scope.

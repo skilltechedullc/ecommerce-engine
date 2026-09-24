@@ -1,3 +1,5 @@
+> Historical implementation notes: the web Launch wizard and setup endpoint were removed from client deployments. Use the local setup tools described in FRESH_DEPLOYMENT.md.
+
 # Phase 12 Client-Owned Launch Wizard
 
 Status: launch wizard skeleton is available in admin and mirrors the local setup scripts.

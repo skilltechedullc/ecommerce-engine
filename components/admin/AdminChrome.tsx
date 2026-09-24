@@ -58,13 +58,6 @@ const NAV_ITEMS = [
     icon: SettingsIcon,
   },
   {
-    href: '/admin/launch',
-    permission: 'settings:update',
-    label: 'Launch',
-    description: 'Client setup flow',
-    icon: LaunchIcon,
-  },
-  {
     href: '/admin/users',
     permission: 'admin-users:manage',
     label: 'Users',
@@ -83,9 +76,8 @@ const PAGE_TITLES: Array<{ match: RegExp; title: string; subtitle: string }> = [
   { match: /^\/admin\/categories$/, title: 'Categories', subtitle: 'Manage reusable categories and subcategories.' },
   { match: /^\/admin\/inventory$/, title: 'Inventory', subtitle: 'Review stock changes and inventory adjustments.' },
   { match: /^\/admin\/media$/, title: 'Media', subtitle: 'Review uploaded product and storefront assets.' },
-  { match: /^\/admin\/settings$/, title: 'Settings', subtitle: 'Review the active store configuration and launch flags.' },
+  { match: /^\/admin\/settings$/, title: 'Settings', subtitle: 'Review the active store configuration and feature settings.' },
   { match: /^\/admin\/settings\/notifications$/, title: 'Notifications', subtitle: 'Edit reusable email and WhatsApp message templates.' },
-  { match: /^\/admin\/launch$/, title: 'Launch', subtitle: 'Walk through the client-owned store setup flow.' },
   { match: /^\/admin\/users$/, title: 'Users', subtitle: 'Manage admin users, roles and sessions.' },
 ]
 
@@ -242,15 +234,6 @@ function SettingsIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path d="m19 13.5 1.4 1.1-1.7 3-1.7-.7a7.2 7.2 0 0 1-1.8 1l-.3 1.8h-3.5l-.3-1.8a7.2 7.2 0 0 1-1.8-1l-1.7.7-1.7-3L5 13.5a7.5 7.5 0 0 1 0-2l-1.4-1.1 1.7-3 1.7.7a7.2 7.2 0 0 1 1.8-1l.3-1.8h3.5l.3 1.8a7.2 7.2 0 0 1 1.8 1l1.7-.7 1.7 3L19 11.5a7.5 7.5 0 0 1 0 2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function LaunchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3c3.2 1.8 5.2 4.8 5.2 8.4v1.2l2 2v3l-3.1-1.2A8.2 8.2 0 0 1 12 18a8.2 8.2 0 0 1-4.1-1.6L4.8 17.6v-3l2-2v-1.2C6.8 7.8 8.8 4.8 12 3Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M12 9.2v3.2M9.8 21h4.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }

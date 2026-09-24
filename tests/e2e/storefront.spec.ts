@@ -26,7 +26,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
   })
 }
 
-test('admin login, restricted unauthenticated access, and launch downloads', async ({ page, request }) => {
+test('admin login, restricted unauthenticated access, and unavailable client setup', async ({ page, request }) => {
   const denied = await request.get('/api/admin/users')
   expect(denied.status()).toBe(401)
   await page.goto('/admin')
@@ -40,10 +40,10 @@ test('admin login, restricted unauthenticated access, and launch downloads', asy
     headers: { origin: 'http://127.0.0.1:3001' },
     data: { storeName: 'Browser Demo', ownerEmail: 'demo@example.invalid' },
   })
-  expect(setup.ok()).toBe(true)
-  const json = await setup.json()
-  expect(json.downloads).toHaveLength(3)
-  expect(json.downloads.find((file: { name: string }) => file.name === '.env.template').content).toContain('UPSTASH_REDIS_REST_URL=')
+  expect(setup.status()).toBe(404)
+  await expect(page.locator('a[href="/admin/launch"]')).toHaveCount(0)
+  const launch = await page.request.get('/admin/launch')
+  expect(launch.status()).toBe(404)
   const crossSite = await page.request.post('/api/admin/users/sessions', {
     headers: { origin: 'https://attacker.invalid' }, data: { session_id: '00000000-0000-4000-8000-000000000000' },
   })

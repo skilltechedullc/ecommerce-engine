@@ -83,7 +83,7 @@ Release gates:
 
 Included: catalog/variants, storefront/cart, Razorpay checkout, optional COD, orders, manual shipping,
 customer tracking/receipts, catalog import/export, admin roles and revocable database sessions,
-audit logs and deployment setup downloads.
+audit logs and local deployment setup tools.
 
 Settings drafts/snapshots are stored in the database, but live storefront configuration is supplied
 through deployment environment variables. Saving a snapshot does not change the live storefront.
@@ -95,3 +95,11 @@ Do not market placeholder integrations as working features.
 If payment succeeds but saving fails, the checkout page retains the payment reference in memory and
 offers a save-only retry. Keep that page open. Full recovery after losing the browser session remains
 an operational/manual recovery case and must be considered before switching to live payments.
+
+## Internal client setup tools
+
+Client store admins do not include the agency Launch wizard. The former `/admin/launch` page
+and `/api/admin/launch/client-setup` endpoint are removed and return 404.
+Prepare setup files locally with `npm run client:setup -- "Client Store Name"`; this writes
+a template and handover notes under `clients/`, not a deployed website. Run readiness and
+provider checks above before deployment. Keep credentials out of Git.

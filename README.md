@@ -2,6 +2,8 @@
 
 Start here: [Current project status and next steps](docs/PROJECT_STATUS.md) — active branch, verified demo, completed work, limitations and the plan before Millco.
 
+Verified demo baseline: [demo-v0.1.0 release checks](docs/DEMO_RELEASE.md). Real WhatsApp activation remains deferred.
+
 Fresh demo rollout: see [Fresh deployment](docs/FRESH_DEPLOYMENT.md) for current setup, verification commands and known limits. Historical phase reports below are not a current launch sign-off.
 
 ## Overview

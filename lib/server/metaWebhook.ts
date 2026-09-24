@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { HttpError } from '@/lib/server/api'
-import { isProduction, optionalEnv } from '@/lib/server/env'
+import { optionalEnv } from '@/lib/server/env'
 
 export function verifyMetaWebhookSignature(input: {
   rawBody: string
@@ -9,10 +9,7 @@ export function verifyMetaWebhookSignature(input: {
   const appSecret = optionalEnv('WHATSAPP_APP_SECRET') ?? optionalEnv('META_APP_SECRET')
 
   if (!appSecret) {
-    if (isProduction()) {
-      throw new HttpError(500, 'WhatsApp webhook signature verification is not configured', 'WEBHOOK_SIGNATURE_CONFIG_ERROR')
-    }
-    return
+    throw new HttpError(500, 'WhatsApp webhook signature verification is not configured', 'WEBHOOK_SIGNATURE_CONFIG_ERROR')
   }
 
   const signatureHeader = input.signatureHeader ?? ''
@@ -21,6 +18,7 @@ export function verifyMetaWebhookSignature(input: {
   }
 
   const received = signatureHeader.slice('sha256='.length)
+  if (!/^[a-f0-9]{64}$/i.test(received)) throw new HttpError(401, 'Invalid WhatsApp webhook signature', 'INVALID_WEBHOOK_SIGNATURE')
   const expected = crypto
     .createHmac('sha256', appSecret)
     .update(input.rawBody)

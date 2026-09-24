@@ -1,10 +1,23 @@
-import Razorpay from 'razorpay'
-import { storeConfig } from '@/lib/config'
 import { formatMoney } from '@/lib/money'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tenantConfig } from '@/lib/tenant.config'
-import { env } from '@/lib/server/env'
-import { sendWhatsAppMessage } from '@/lib/whatsapp/meta'
+import { sendWhatsAppMessage as sendMessage } from '@/lib/whatsapp/meta'
+import { trackWhatsAppOrder, extractOrderId } from './tracking'
+import { interpretIntent, deterministicIntent } from './intent'
+import { buildCheckoutLink } from './cartLink'
+import { AsyncLocalStorage } from 'node:async_hooks'
+
+const replyBuffer = new AsyncLocalStorage<string[]>()
+async function sendWhatsAppMessage(phone: string, text: string) {
+  const buffer = replyBuffer.getStore()
+  if (buffer) buffer.push(text)
+  else await sendMessage(phone, text)
+}
+export async function prepareReplies(phone: string, text: string): Promise<string[]> {
+  const replies: string[] = []
+  await replyBuffer.run(replies, () => handleIncomingMessage(phone, text))
+  return replies
+}
 import { clearSession, getSession, updateSession, type CartItem } from '@/lib/whatsapp/session'
 
 type ProductRow = {
@@ -35,10 +48,6 @@ const SELECTING_VARIANT_PREFIX = 'selecting_variant:'
 const SELECTING_QUANTITY_PREFIX = 'selecting_quantity:'
 
 const supabaseAdmin = getSupabaseAdmin()
-const razorpay = new Razorpay({
-  key_id: env('RAZORPAY_KEY_ID'),
-  key_secret: env('RAZORPAY_KEY_SECRET'),
-})
 
 function normalizeInput(text: string): string {
   return text.trim()
@@ -63,6 +72,7 @@ function buildWelcomeMenu(): string {
     '1. Browse products',
     '2. View my cart',
     '3. Help',
+    '4. Track my order',
   ].join('\n')
 }
 
@@ -124,7 +134,7 @@ function buildPostAddOptions(): string {
 }
 
 function parseChoice(text: string): number | null {
-  const value = Number.parseInt(text, 10)
+  const value = /^\d+$/.test(text) ? Number(text) : NaN
   if (!Number.isInteger(value)) return null
   return value
 }
@@ -229,151 +239,37 @@ async function sendProductsAndSetBrowsing(phone: string): Promise<void> {
 
 async function startCheckout(phone: string, cart: CartItem[]): Promise<void> {
   if (cart.length === 0) {
-    await sendWhatsAppMessage(phone, 'Your cart is empty. Send anything to start again.')
-    await updateSession(phone, { step: 'idle' })
+    await sendWhatsAppMessage(phone, 'Your cart is empty. Reply MENU to browse products.')
     return
   }
-
-  await sendWhatsAppMessage(phone, 'Please share your full name for delivery')
-  await updateSession(phone, { step: 'checkout_name' })
-}
-
-function buildOrderSummary(cart: CartItem[], customerName: string, customerAddress: string): string {
-  const lines = cart.map((item, index) => {
-    const lineTotal = item.price * item.quantity
-    return `${index + 1}. ${item.quantity} x ${item.productName} (${item.variantName}) - ${moneyLabel(lineTotal)}`
-  })
-
-  return [
-    'Order summary:',
-    ...lines,
-    '',
-    `Total: ${moneyLabel(cartTotal(cart))}`,
-    `Name: ${customerName}`,
-    `Address: ${customerAddress}`,
-    '',
-    'Reply YES to confirm or NO to cancel',
-  ].join('\n')
-}
-
-const ordersColumnCache = new Map<string, boolean>()
-
-async function hasOrdersColumn(column: string): Promise<boolean> {
-  const cached = ordersColumnCache.get(column)
-  if (cached !== undefined) return cached
-
-  const { error } = await supabaseAdmin.from('orders').select(column).limit(1)
-  if (error) {
-    const message = error.message.toLowerCase()
-    if (message.includes('column') && message.includes(column.toLowerCase())) {
-      ordersColumnCache.set(column, false)
-      return false
-    }
-  }
-
-  ordersColumnCache.set(column, true)
-  return true
-}
-
-async function createWhatsappOrder(phone: string, cart: CartItem[], customerName: string, customerAddress: string): Promise<{ displayOrderId: string; paymentUrl: string }> {
-  const totalAmount = cartTotal(cart)
-  const nonce = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-
-  const basePayload: Record<string, unknown> = {
-    customer_name: customerName,
-    customer_phone: phone,
-    customer_email: '',
-    customer_address: customerAddress,
-    total_amount: totalAmount,
-    status: 'Pending',
-    razorpay_order_id: `wa_pending_order_${nonce}`,
-    razorpay_payment_id: `wa_pending_payment_${nonce}`,
-  }
-
-  if (await hasOrdersColumn('payment_method')) {
-    basePayload.payment_method = 'whatsapp_cod'
-  }
-
-  if (await hasOrdersColumn('items')) {
-    basePayload.items = cart.map((item) => ({
-      product_id: item.productId,
-      variant_id: item.variantId,
-      product_name: item.productName,
-      variant_name: item.variantName,
-      price: item.price,
-      quantity: item.quantity,
-    }))
-  }
-
-  if (await hasOrdersColumn('source')) {
-    basePayload.source = 'whatsapp'
-  }
-
-  if (!(await hasOrdersColumn('razorpay_order_id'))) {
-    delete basePayload.razorpay_order_id
-  }
-
-  if (!(await hasOrdersColumn('razorpay_payment_id'))) {
-    delete basePayload.razorpay_payment_id
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('orders')
-    .insert(basePayload)
-    .select('id')
-    .single<{ id: string }>()
-
-  if (error) throw error
-
-  const normalizedId = data.id.replace(/-/g, '')
-  const displayOrderId = `ORD-${normalizedId.slice(-6).toUpperCase()}`
-  const amountPaise = Math.round(totalAmount * 100)
-
-  const paymentLink = await (razorpay as unknown as {
-    paymentLink: {
-      create: (payload: Record<string, unknown>) => Promise<{ short_url?: string | null }>
-    }
-  }).paymentLink.create({
-    amount: amountPaise,
-    currency: storeConfig.currency,
-    accept_partial: false,
-    description: `Payment for ${displayOrderId}`,
-    customer: {
-      name: customerName,
-      email: 'orders@millco.in',
-      contact: phone.replace(/\D/g, ''),
-    },
-    notify: {
-      sms: true,
-      email: false,
-    },
-    reminder_enable: true,
-    notes: {
-      db_order_id: data.id,
-      channel: 'whatsapp',
-      customer_phone: phone,
-    },
-  })
-
-  const paymentUrl = paymentLink.short_url?.trim()
-  if (!paymentUrl) {
-    throw new Error('Failed to generate payment link')
-  }
-
-  return { displayOrderId, paymentUrl }
+  await sendWhatsAppMessage(phone, ['Continue securely on our website:', buildCheckoutLink(cart), 'Review your cart, delivery details and current prices before paying. Your WhatsApp cart is kept until you clear it.'].join('\n'))
+  await updateSession(phone, { step: 'cart_review' })
 }
 
 export async function handleIncomingMessage(phone: string, text: string): Promise<void> {
   const input = normalizeInput(text)
 
   try {
-    const session = await getSession(phone)
-
-    if (!tenantConfig.features.whatsappBot) {
-      await sendWhatsAppMessage(phone, 'WhatsApp ordering is currently unavailable. Please try again later.')
+    if (process.env.WHATSAPP_ENABLED !== 'true' || !tenantConfig.features.whatsappBot) {
       return
     }
 
+    const session = await getSession(phone)
+    const intent = ['idle', 'menu'].includes(session.step)
+      ? await interpretIntent(input) : deterministicIntent(input)
+    if (intent === 'menu') { await sendMenu(phone); return }
+    if (intent === 'track' || extractOrderId(input) || session.step === 'tracking' || (session.step === 'menu' && input === '4')) {
+      await sendWhatsAppMessage(phone, await trackWhatsAppOrder(phone, input))
+      await updateSession(phone, { step: 'tracking' })
+      return
+    }
+    if (intent === 'products') { await sendProductsAndSetBrowsing(phone); return }
+    if (intent === 'help') { await sendWhatsAppMessage(phone, getStoreContactLine()); return }
+    if (intent === 'cart') {
+      await sendWhatsAppMessage(phone, buildCartMessage(session.cart))
+      await updateSession(phone, { step: session.cart.length ? 'cart_review' : 'menu' })
+      return
+    }
     const variantProductId = parseSelectingVariantStep(session.step)
     const quantityContext = parseSelectingQuantityStep(session.step)
 
@@ -382,9 +278,6 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
       'browsing',
       'post_add',
       'cart_review',
-      'checkout_name',
-      'checkout_address',
-      'checkout_confirm',
     ].includes(session.step))) {
       await sendMenu(phone)
       return
@@ -468,7 +361,7 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
     }
 
     if (quantityContext) {
-      const quantity = Number.parseInt(input, 10)
+      const quantity = /^\d+$/.test(input) ? Number(input) : NaN
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
         await sendWhatsAppMessage(phone, 'Please enter a valid quantity between 1 and 20.')
         return
@@ -564,72 +457,9 @@ export async function handleIncomingMessage(phone: string, text: string): Promis
       return
     }
 
-    if (session.step === 'checkout_name') {
-      if (!input) {
-        await sendWhatsAppMessage(phone, 'Please share your full name for delivery')
-        return
-      }
-
-      await updateSession(phone, {
-        customerName: input,
-        step: 'checkout_address',
-      })
-
-      await sendWhatsAppMessage(phone, 'Please share your delivery address (include city and pincode)')
-      return
-    }
-
-    if (session.step === 'checkout_address') {
-      if (!input) {
-        await sendWhatsAppMessage(phone, 'Please share your delivery address (include city and pincode)')
-        return
-      }
-
-      const customerName = session.customerName?.trim() || 'Customer'
-
-      await updateSession(phone, {
-        customerAddress: input,
-        step: 'checkout_confirm',
-      })
-
-      await sendWhatsAppMessage(phone, buildOrderSummary(session.cart, customerName, input))
-      return
-    }
-
-    if (session.step === 'checkout_confirm') {
-      if (input.toUpperCase() === 'YES') {
-        const customerName = session.customerName?.trim() || 'Customer'
-        const customerAddress = session.customerAddress?.trim() || ''
-
-        const { displayOrderId, paymentUrl } = await createWhatsappOrder(phone, session.cart, customerName, customerAddress)
-
-        await sendWhatsAppMessage(
-          phone,
-          [
-            `Order ${displayOrderId} is created and pending payment.`,
-            'Please complete payment using this secure link:',
-            paymentUrl,
-            '',
-            'You will receive final confirmation after successful payment.',
-          ].join('\n')
-        )
-        await clearSession(phone)
-        return
-      }
-
-      if (input.toUpperCase() === 'NO') {
-        await sendWhatsAppMessage(phone, 'Order cancelled. Send anything to start again.')
-        await clearSession(phone)
-        return
-      }
-
-      await sendWhatsAppMessage(phone, 'Please reply YES to confirm or NO to cancel.')
-      return
-    }
 
     await sendMenu(phone)
   } catch (error) {
-    console.error('[whatsapp] handleIncomingMessage failed', error)
-    await sendWhatsAppMessage(phone, 'Something went wrong, please try again')
+    throw error
   }
 }

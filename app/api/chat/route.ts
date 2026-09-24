@@ -210,6 +210,7 @@ function jsonError(message: string, status: number, code: string, details?: unkn
 
 export async function POST(req: NextRequest): Promise<Response> {
   try {
+    if (!tenantConfig.features.aiChat) return jsonError('Chat is currently unavailable.', 503, 'CHAT_DISABLED')
     await enforceRateLimit(req, {
       keyPrefix: 'ai-chat',
       windowMs: WINDOW_MS,

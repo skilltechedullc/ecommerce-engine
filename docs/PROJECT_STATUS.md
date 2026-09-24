@@ -40,18 +40,18 @@ Verification history: the initial demo and visual update passed lint, TypeScript
 - This is a working test-mode demo, not a sign-off for real-money commerce or every historical roadmap feature.
 - A new Razorpay test webhook was saved by the owner with `payment.captured` and `order.paid`. Actual Razorpay delivery after that dashboard setup still needs verification; signed simulation is already tested.
 - Resend uses its demo sender, with delivery tested to the account email. Verify a sender domain and customer delivery before real customer use.
-- WhatsApp and AI are disabled in the fresh deployment. Existing WhatsApp shopping flow and website AI code are separate; WhatsApp order lookup and its AI integration are not completed or verified.
+- WhatsApp and AI remain disabled. Sender-bound tracking, optional constrained AI intent routing and website checkout handoff are implemented and locally tested. Real Meta messages, approved notification templates and AI-provider calls still await configuration/testing. See WHATSAPP_ACTIVATION.md.
 - Guest order tracking exists. Customer accounts are deferred.
 - Shipping uses the manual workflow. Shipping-provider stubs are not completed integrations.
 - Store settings snapshots do not update deployed storefront configuration; active branding/configuration still requires environment changes and redeployment.
 - Admin invitation/reset email delivery and two-factor enrollment are not implemented. Do not advertise them as available.
-- If a customer loses the browser session after payment succeeds but before order saving completes, full recovery remains an operational/manual case to resolve or document before live payments.
+- New checkout sessions store a private contact snapshot for captured-payment webhook recovery when browser callbacks are lost. Stock/price conflicts and legacy sessions without that snapshot still require operator review. Orders exposes unresolved verified/failed-save checkouts.
 - Advertised module flags and historical phase checkmarks are not evidence that every add-on works.
 
 ## Agreed next steps, in order
 
 1. [x] Remove Launch from client admin and disable its web setup endpoint; retain local setup tools.
-2. [ ] Complete WhatsApp order lookup using verified incoming sender identity and stored order/shipping records. Protect other customers' orders; never let AI invent status or grant access. Connect AI interpretation only with controlled tools and a deterministic fallback. Keep integrations disabled until configured.
+2. [x] Complete WhatsApp order lookup using verified incoming sender identity and stored order/shipping records. Protect other customers' orders; never let AI invent status or grant access. Connect AI interpretation only with controlled tools and a deterministic fallback. Keep integrations disabled until configured.
 3. [ ] Test WhatsApp with a Meta test number or customer number when supplied. Record code/simulation checks separately from real provider delivery tests. The owner has deferred number configuration.
 4. [ ] Run a final ecommerce review: checkout, payment retries/webhooks, stock, admin permissions, shipping notifications and customer tracking. Resolve or explicitly record remaining release blockers and untested integrations.
 5. [ ] Record a versioned engine baseline and handover instructions after the agreed scope passes. Completion means that scope is verified, not that every possible niche or future feature has been built.
@@ -61,7 +61,7 @@ Verification history: the initial demo and visual update passed lint, TypeScript
 
 Focus now on product-based ecommerce: finish the demo, then Millco and similar stores. Cosmetics and general retail can reuse the commerce foundation with suitable presentation and catalog configuration. Tyre fitment, wholesale pricing/quotes and advanced variant needs require an assessment and possibly additional work; they are not promised built-in features.
 
-Service businesses such as AC maintenance are outside this release. A self-service store builder, private agency dashboard, customer accounts and a multi-tenant platform are deferred. Theme differences do not require duplicating the whole engine by default; determine a client's actual needs before choosing configuration, extensions or a separate application.
+Service businesses such as AC maintenance are outside this release. A self-service store builder, private agency dashboard, customer accounts and a multi-tenant platform are deferred. The owner chose agency-managed hosting: clients receive store-admin access; the agency manages infrastructure and maintenance. Clients retain their domain, payments, business identity and business data. Billing and suspension will be manual; no automation is planned now. Theme differences do not require duplicating the whole engine by default; determine a client's actual needs before choosing configuration, extensions or a separate application.
 
 ## Git and record-keeping decisions
 

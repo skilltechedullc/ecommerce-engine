@@ -40,9 +40,10 @@ For browser checks, seed the local database and generate isolated local credenti
 ```sh
 docker exec -i supabase_db_ecommerce-engine psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/seed.client-demo.sql
 node scripts/prepare-local-test.mjs
-node scripts/with-env.mjs .env.local-test dev --webpack --hostname 127.0.0.1 --port 3001
+node scripts/with-env.mjs .env.local-test dev --webpack --hostname localhost --port 3001
 # In a second terminal:
 npx playwright test
+node --import tsx --test tests/integration/*.test.ts
 ```
 
 Browser checks use local COD orders and synthetic customer details. No valid external payment/email credentials are loaded.
@@ -92,9 +93,7 @@ Email invites/password-reset delivery and two-factor enrollment are not implemen
 Shipping-provider adapters and paid-module flags do not mean every advertised add-on is implemented.
 Do not market placeholder integrations as working features.
 
-If payment succeeds but saving fails, the checkout page retains the payment reference in memory and
-offers a save-only retry. Keep that page open. Full recovery after losing the browser session remains
-an operational/manual recovery case and must be considered before switching to live payments.
+Apply `202609240001_checkout_recovery.sql` before deploying this release. New checkout sessions retain a private contact snapshot before payment. Captured-payment webhooks independently verify payment with Razorpay and use the atomic checkout operation to recover an order if the browser callback is lost. The browser also offers a save-only retry. Stock/price conflicts still require operator review; the Orders page lists verified or failed-save checkouts without an order. Reconcile captured payments in Razorpay before issuing refunds or fulfilling exceptions. Legacy checkout sessions without a contact snapshot require manual recovery.
 
 ## Internal client setup tools
 
@@ -103,3 +102,9 @@ and `/api/admin/launch/client-setup` endpoint are removed and return 404.
 Prepare setup files locally with `npm run client:setup -- "Client Store Name"`; this writes
 a template and handover notes under `clients/`, not a deployed website. Run readiness and
 provider checks above before deployment. Keep credentials out of Git.
+
+## Managed client hosting
+
+The current business model is agency-managed hosting and maintenance. Clients receive store-admin access; the agency operates the deployment and separate client database. Clients retain their domain, payment account, business identity and business data. Billing and suspension remain manual and are outside the demo feature scope. Do not change repository visibility, old branches or the old Millco deployment implicitly.
+
+WhatsApp activation is deferred; see [WhatsApp activation](WHATSAPP_ACTIVATION.md).

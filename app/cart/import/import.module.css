@@ -1,0 +1,8 @@
+.page { max-width: 680px; margin: 48px auto 80px; padding: 28px; color: #18372c; }
+.page h1 { font-size: clamp(1.8rem, 5vw, 2.5rem); line-height: 1.15; letter-spacing: -.03em; margin-bottom: 18px; }
+.page p { color: #52635b; line-height: 1.65; margin: 16px 0; }
+.page ul { list-style: none; padding: 0; margin: 28px 0; border-top: 1px solid #dce4df; }
+.page li { padding: 16px 0; border-bottom: 1px solid #dce4df; line-height: 1.6; }
+.page button { background: #153c2d; color: white; padding: 14px 20px; border: 0; border-radius: 8px; font: inherit; cursor: pointer; }
+.page a { text-decoration: underline; text-underline-offset: 4px; }
+@media(max-width: 600px) { .page { margin-top: 20px; padding: 24px; } .page button { width: 100%; } }

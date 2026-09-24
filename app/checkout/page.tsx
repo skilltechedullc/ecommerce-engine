@@ -196,6 +196,7 @@ export default function CheckoutPage() {
             quantity: item.quantity,
           })),
           deliveryAddress: address,
+          customer: { name, email, phone, address },
         }),
       })
       const orderData = await orderRes.json()

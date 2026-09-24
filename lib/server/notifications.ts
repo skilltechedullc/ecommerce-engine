@@ -342,6 +342,8 @@ async function sendWhatsAppViaMeta(input: {
   const accessToken = optionalEnv('WHATSAPP_ACCESS_TOKEN')
   const phoneNumberId = optionalEnv('WHATSAPP_PHONE_NUMBER_ID')
   const languageCode = optionalEnv('WHATSAPP_META_TEMPLATE_LANGUAGE') ?? 'en'
+  const graphVersion = optionalEnv('WHATSAPP_GRAPH_API_VERSION')
+  if (!graphVersion || !/^v\d+\.0$/.test(graphVersion)) throw new Error('WHATSAPP_GRAPH_API_VERSION must be configured')
 
   if (!accessToken || !phoneNumberId) {
     throw new Error('Meta WhatsApp config missing (WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID)')
@@ -355,7 +357,7 @@ async function sendWhatsAppViaMeta(input: {
     input.variables.order_status ?? '',
   ]
 
-  const response = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+  const response = await fetch(`https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -435,6 +437,7 @@ async function dispatchNotification(input: {
   event: NotificationEvent
   channel: NotificationChannel
 }) {
+  if (input.channel === 'whatsapp' && !whatsappEnabled()) return
   const recipient = input.channel === 'email' ? input.order.customer_email : input.order.customer_phone ?? ''
   const { logId, duplicate } = await createNotificationLog({
     orderId: input.order.id,
@@ -449,6 +452,7 @@ async function dispatchNotification(input: {
   })
 
   if (duplicate) return
+  if (!logId) throw new Error('Cannot send notification without a persisted delivery log')
 
   if (input.channel === 'email') {
     const result = await withRetries(async () => {

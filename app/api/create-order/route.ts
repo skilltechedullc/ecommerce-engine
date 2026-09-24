@@ -1,3 +1,4 @@
+import { checkoutCustomerSchema } from '@/lib/server/checkoutCustomer'
 import Razorpay from 'razorpay'
 import { NextRequest } from 'next/server'
 import crypto from 'crypto'
@@ -19,6 +20,7 @@ type CreateOrderBody = {
     variant_id?: string
     quantity?: number
   }>
+  customer?: unknown
   deliveryAddress?: string
 }
 
@@ -30,6 +32,7 @@ type ParsedOrderItem = {
 type CanonicalCheckoutItem = {
   variant_id: string
   product_id: string
+  product_name: string
   price: number
   quantity: number
 }
@@ -69,13 +72,16 @@ export async function POST(req: NextRequest) {
 
     const body = await parseJson<CreateOrderBody>(req)
     const items = parseItems(body.items)
+    const parsedCustomer = checkoutCustomerSchema.safeParse(body.customer)
+    if (!parsedCustomer.success) throw new HttpError(400, 'Valid customer contact and delivery details are required', 'INVALID_CUSTOMER')
+    const customer = parsedCustomer.data
 
     const supabaseAdmin = getSupabaseAdmin()
     const variantIds = items.map((item) => item.variant_id)
 
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from('product_variants')
-      .select('id, product_id, price, stock')
+      .select('id, product_id, weight, price, stock')
       .in('id', variantIds)
 
     if (variantsError) {
@@ -90,7 +96,7 @@ export async function POST(req: NextRequest) {
     const productIds = Array.from(new Set((variants ?? []).map((variant) => String(variant.product_id))))
     const { data: products, error: productsError } = await supabaseAdmin
       .from('products')
-      .select('id, is_active')
+      .select('id, name, is_active')
       .in('id', productIds)
 
     if (productsError) {
@@ -130,12 +136,13 @@ export async function POST(req: NextRequest) {
       canonicalItems.push({
         variant_id: item.variant_id,
         product_id: String(dbVariant.product_id),
+        product_name: String(dbProduct.name) + (dbVariant.weight ? ' - ' + String(dbVariant.weight) : ''),
         price: dbPrice,
         quantity: item.quantity,
       })
     }
 
-    const quote = calculateShippingRate(amount, undefined, { address: body.deliveryAddress })
+    const quote = calculateShippingRate(amount, undefined, { address: customer.address })
     const amountPaise = amountToPaise(quote.total)
     const checkoutSessionId = crypto.randomUUID()
 
@@ -158,6 +165,7 @@ export async function POST(req: NextRequest) {
         shipping_amount: quote.shippingAmount,
         currency: storeConfig.currency,
         items: canonicalItems,
+        customer,
         status: 'created',
       })
 

@@ -70,8 +70,8 @@ test('upload route sanitizes supported images before storage', () => {
   assert.match(route, /media_assets/)
 })
 
-test('Meta webhook signature is optional outside production when no secret is configured', () => {
-  assert.doesNotThrow(() => verifyMetaWebhookSignature({
+test('Meta webhook fails closed when no secret is configured', () => {
+  assert.throws(() => verifyMetaWebhookSignature({
     rawBody: '{"ok":true}',
     signatureHeader: null,
   }))

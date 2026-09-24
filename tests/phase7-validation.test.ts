@@ -87,23 +87,8 @@ test('phase 10 base client package and handover guide are documented', () => {
   assert.match(packageJson, /client:handover/)
 })
 
-test('phase 12 launch wizard skeleton is available in admin', () => {
+test('client setup remains a local tool after removal of the web wizard', () => {
   const chrome = readFileSync('components/admin/AdminChrome.tsx', 'utf8')
-  const launchPage = readFileSync('app/admin/(protected)/launch/page.tsx', 'utf8')
-  const healthRoute = readFileSync('app/api/admin/health/providers/route.ts', 'utf8')
-  const healthPanel = readFileSync('app/admin/(protected)/launch/ProviderHealthPanel.tsx', 'utf8')
-  const progress = readFileSync('app/admin/(protected)/launch/LaunchProgressChecklist.tsx', 'utf8')
-  const report = readFileSync('docs/PHASE12_CLIENT_LAUNCH_WIZARD.md', 'utf8')
-
-  assert.match(chrome, /href: '\/admin\/launch'/)
-  assert.match(launchPage, /Create new client store/)
-  assert.match(launchPage, /npm\.cmd run client:setup/)
-  assert.match(launchPage, /Razorpay/)
-  assert.match(launchPage, /Resend/)
-  assert.match(launchPage, /ProviderHealthPanel/)
-  assert.match(healthRoute, /getProviderHealthChecks/)
-  assert.match(healthPanel, /Run Provider Checks/)
-  assert.match(progress, /localStorage/)
-  assert.match(progress, /Launch checklist/)
-  assert.match(report, /launch wizard skeleton/)
+  assert.doesNotMatch(chrome, /href: '\/admin\/launch'/)
+  assert.match(readFileSync('scripts/create-client-setup.mjs', 'utf8'), /handover-notes/)
 })

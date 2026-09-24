@@ -218,6 +218,7 @@ async function updateCheckoutSession(input: {
     .from('checkout_sessions')
     .update(payload)
     .eq('razorpay_order_id', input.razorpayOrderId)
+    .neq('status', 'order_saved')
 
   if (error) {
     throw new HttpError(500, error.message, 'DB_UPDATE_CHECKOUT_SESSION_FAILED')
@@ -350,11 +351,12 @@ export async function POST(req: NextRequest) {
     if (checkoutSession.status === 'order_saved') {
       const { data: existingOrderBySession } = await supabaseAdmin
         .from('orders')
-        .select('id, confirmation_token')
+        .select('id, confirmation_token, razorpay_payment_id')
         .eq('razorpay_order_id', razorpay_order_id)
         .maybeSingle()
 
       if (existingOrderBySession?.id) {
+        if (existingOrderBySession.razorpay_payment_id !== razorpay_payment_id) throw new HttpError(409, 'Payment reference mismatch', 'PAYMENT_MISMATCH')
         return jsonOk({ order_id: existingOrderBySession.id, confirmation_token: existingOrderBySession.confirmation_token, idempotent: true }, { requestId })
       }
     }

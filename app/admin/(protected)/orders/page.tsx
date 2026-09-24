@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
@@ -11,6 +12,9 @@ export default async function OrdersPage({
   searchParams: Promise<{ scope?: string; status?: string }>
 }) {
   await requireAdminPermission('orders:list')
+  const { data: recovery, error: recoveryError } = await getSupabaseAdmin().from('checkout_sessions')
+    .select('id, razorpay_order_id, razorpay_payment_id, amount_paise, status')
+    .in('status', ['payment_verified', 'order_save_failed']).is('order_id', null).order('created_at', { ascending: false }).limit(20)
   const { scope, status } = await searchParams
   const { orders } = await fetchInternalApi<{
     orders: Array<{
@@ -59,6 +63,13 @@ export default async function OrdersPage({
         </a>
       </section>
 
+      {recoveryError ? <p role="alert">Payment recovery checks are temporarily unavailable. Review captured payments in your payment dashboard.</p> : recovery?.length ? (
+        <section className="admin-surface" role="status">
+          <h2 className="admin-sectionTitle">Payments needing review</h2>
+          <p>These checkouts have not produced a saved order. Check payment capture, stock and pricing before fulfilling or refunding. Do not ask the customer to pay again.</p>
+          <ul>{recovery.map(item => <li key={item.id}>{item.razorpay_order_id} — {moneyWithSymbol(Number(item.amount_paise) / 100)} — {item.status}</li>)}</ul>
+        </section>
+      ) : null}
       <div className="admin-metricGrid">
         <section className="admin-surface admin-metricCard">
           <p className="admin-metricCard__label">Total Orders</p>

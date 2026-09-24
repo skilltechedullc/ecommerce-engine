@@ -51,7 +51,7 @@ export function checkReadiness(env, mode = 'test') {
   }
   if (value('WHATSAPP_ENABLED') === 'true') {
     const providers = {
-      meta: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_APP_SECRET'],
+      meta: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_APP_SECRET', 'WHATSAPP_GRAPH_API_VERSION', 'WHATSAPP_VERIFY_TOKEN'],
       twilio: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'WHATSAPP_FROM'],
       wati: ['WATI_API_BASE_URL', 'WATI_API_TOKEN'],
       gupshup: ['GUPSHUP_APP_NAME', 'GUPSHUP_API_KEY'],
@@ -60,6 +60,8 @@ export function checkReadiness(env, mode = 'test') {
     if (!keys) errors.push('WHATSAPP_PROVIDER is unsupported')
     else for (const key of keys) if (!value(key)) errors.push(key + ' is missing')
   }
+  if (value('WHATSAPP_AI_ENABLED') === 'true' && !value('ANTHROPIC_API_KEY')) errors.push('ANTHROPIC_API_KEY is missing for WhatsApp AI')
+  if (value('NEXT_PUBLIC_FEATURE_WHATSAPP_BOT') === 'true' && value('WHATSAPP_ENABLED') !== 'true') warnings.push('WhatsApp bot is flagged on but messaging is disabled')
   warnings.push('This checks configuration only. Database migrations, credentials, webhooks, email delivery and checkout still require end-to-end verification.')
   return { errors: [...new Set(errors)], warnings }
 }

@@ -157,3 +157,8 @@ export function updateQuantity(id: string, quantity: number) {
 export function clearCart() {
   clearCartRaw()
 }
+
+export function replaceCart(items: CartItem[]): void {
+  writeCartRaw(JSON.stringify(items))
+  emitCartUpdated()
+}

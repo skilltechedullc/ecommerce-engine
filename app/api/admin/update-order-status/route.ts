@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { after, NextRequest } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getAdminRole } from '@/lib/adminAuth'
 import { hasPermission } from '@/lib/server/permissions'
@@ -56,10 +56,13 @@ export async function POST(req: NextRequest) {
         'INVALID_STATUS_TRANSITION'
       )
     }
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('orders')
       .update({ status: newStatus })
       .eq('id', orderId)
+      .eq('status', currentStatus)
+      .select('id')
+      .maybeSingle()
 
     if (error) {
       if (error.message.includes('updated_at')) {
@@ -72,7 +75,8 @@ export async function POST(req: NextRequest) {
       throw new HttpError(500, error.message, 'DB_UPDATE_FAILED')
     }
 
-    void notifyOrderStatusChanged({ orderId, newStatus }).catch(() => undefined)
+    if (!updated) throw new HttpError(409, 'Order status changed. Refresh and try again.', 'STATUS_CONFLICT')
+    after(() => notifyOrderStatusChanged({ orderId, newStatus }))
 
     await writeAuditLog({
       actorType: 'admin',

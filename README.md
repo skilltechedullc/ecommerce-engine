@@ -1,5 +1,7 @@
 # Ecommerce Engine
 
+Millco branch: see [Millco onboarding](docs/MILLCO_ONBOARDING.md) for this store’s setup and remaining launch steps. The demo release record below remains the engine baseline.
+
 Start here: [Current project status and next steps](docs/PROJECT_STATUS.md) — active branch, verified demo, completed work, limitations and the plan before Millco.
 
 Verified demo baseline: [demo-v0.1.0 release checks](docs/DEMO_RELEASE.md). Real WhatsApp activation remains deferred.

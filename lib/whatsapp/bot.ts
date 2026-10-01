@@ -58,9 +58,10 @@ function getStoreContactLine(): string {
   const whatsapp = tenantConfig.contact.whatsappNumber.trim()
   const email = tenantConfig.contact.supportEmail.trim()
 
-  if (whatsapp) return `For help, contact us on WhatsApp: ${whatsapp}`
-  if (phone) return `For help, call us: ${phone}`
+  if (email && phone) return `For help from our team, email ${email} or call ${phone}.`
   if (email) return `For help, email us: ${email}`
+  if (phone) return `For help, call us: ${phone}`
+  if (whatsapp) return `For help, contact us on WhatsApp: ${whatsapp}`
   return 'For help, contact our support team.'
 }
 

@@ -277,3 +277,5 @@
 .navCta { background: transparent; color: var(--tenant-primary); box-shadow: none; padding: 0; }
 .cartButton, .menuButton { min-width: 44px; min-height: 44px; border-radius: 10px; box-shadow: none; }
 @media(max-width:640px) { .brandLogo { width: 34px; height: 34px; } .brandName { font-size: 17px; } }
+
+.wordmarkLogo{width:180px;height:54px;object-fit:contain}.wordmarkName{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}@media(max-width:640px){.wordmarkLogo{width:150px;height:45px}}

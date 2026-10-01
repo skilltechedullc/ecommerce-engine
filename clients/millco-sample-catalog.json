@@ -1,0 +1,180 @@
+[
+  {
+    "name": "Sulphur-Free Coconut Oil",
+    "slug": "sulphur-free-coconut-oil",
+    "category": "Coconut Oils",
+    "subcategory": "Everyday cooking",
+    "description": "A kitchen staple for tempering, curries and Kerala favourites. Millco describes its coconut process as fresh-coconut sourcing, controlled drying and mechanical extraction. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/sulphur-free-coconut-oil.svg",
+    "variants": [
+      {
+        "weight": "500 ml",
+        "price": 249,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-SULPHUR-FREE-COCONUT-OIL-0"
+      },
+      {
+        "weight": "1 L",
+        "price": 469,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-SULPHUR-FREE-COCONUT-OIL-1"
+      },
+      {
+        "weight": "2 L",
+        "price": 899,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-SULPHUR-FREE-COCONUT-OIL-2"
+      }
+    ]
+  },
+  {
+    "name": "Cold-Pressed Coconut Oil",
+    "slug": "cold-pressed-coconut-oil",
+    "category": "Coconut Oils",
+    "subcategory": "Cold pressed",
+    "description": "Bring coconut character to your everyday recipes. Choose a convenient bottle for your kitchen or a larger pack for family cooking. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/cold-pressed-coconut-oil.svg",
+    "variants": [
+      {
+        "weight": "250 ml",
+        "price": 159,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-COCONUT-OIL-0"
+      },
+      {
+        "weight": "500 ml",
+        "price": 289,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-COCONUT-OIL-1"
+      },
+      {
+        "weight": "1 L",
+        "price": 549,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-COCONUT-OIL-2"
+      }
+    ]
+  },
+  {
+    "name": "Ventha Velichenna",
+    "slug": "ventha-velichenna",
+    "category": "Coconut Oils",
+    "subcategory": "Traditional coconut oil",
+    "description": "Traditional coconut oil, also known as Ventha Velichenna. A dedicated place in the collection for a Kerala favourite; final preparation and usage details will be added with the product label. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/ventha-velichenna.svg",
+    "variants": [
+      {
+        "weight": "250 ml",
+        "price": 299,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-VENTHA-VELICHENNA-0"
+      },
+      {
+        "weight": "500 ml",
+        "price": 569,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-VENTHA-VELICHENNA-1"
+      }
+    ]
+  },
+  {
+    "name": "Cold-Pressed Sesame Oil",
+    "slug": "cold-pressed-sesame-oil",
+    "category": "Cold-Pressed Oils",
+    "subcategory": "Sesame oil",
+    "description": "A flavourful companion for pickles, dressings and traditional cooking. Select a small bottle to explore the range or a larger everyday size. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/cold-pressed-sesame-oil.svg",
+    "variants": [
+      {
+        "weight": "250 ml",
+        "price": 179,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-SESAME-OIL-0"
+      },
+      {
+        "weight": "500 ml",
+        "price": 329,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-SESAME-OIL-1"
+      },
+      {
+        "weight": "1 L",
+        "price": 619,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-COLD-PRESSED-SESAME-OIL-2"
+      }
+    ]
+  },
+  {
+    "name": "Wayanadan Honey",
+    "slug": "wayanadan-honey",
+    "category": "Honey",
+    "subcategory": "Regional honey",
+    "description": "A honey selection for toast, breakfast bowls and a finishing drizzle. Wayanad sourcing and batch details will be confirmed on the final product label. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/wayanadan-honey.svg",
+    "variants": [
+      {
+        "weight": "250 g",
+        "price": 229,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-WAYANADAN-HONEY-0"
+      },
+      {
+        "weight": "500 g",
+        "price": 429,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-WAYANADAN-HONEY-1"
+      },
+      {
+        "weight": "1 kg",
+        "price": 799,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-WAYANADAN-HONEY-2"
+      }
+    ]
+  },
+  {
+    "name": "Sidr Honey",
+    "slug": "sidr-honey",
+    "category": "Honey",
+    "subcategory": "Sidr selection",
+    "description": "An inviting addition to the honey collection. Enjoy a spoonful with breakfast or pair with warm toast. Floral source and origin will be confirmed before sale. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/sidr-honey.svg",
+    "variants": [
+      {
+        "weight": "250 g",
+        "price": 499,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-SIDR-HONEY-0"
+      },
+      {
+        "weight": "500 g",
+        "price": 949,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-SIDR-HONEY-1"
+      }
+    ]
+  },
+  {
+    "name": "Arrowroot Powder",
+    "slug": "arrowroot-powder",
+    "category": "Pantry Essentials",
+    "subcategory": "Cooking powders",
+    "description": "A versatile pantry ingredient for thickening sauces and preparing puddings. Choose the pack size that suits your kitchen. Sample listing: pricing, pack details and stock are for testing and will be updated before sale.",
+    "image": "/millco/arrowroot-powder.svg",
+    "variants": [
+      {
+        "weight": "250 g",
+        "price": 149,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-ARROWROOT-POWDER-0"
+      },
+      {
+        "weight": "500 g",
+        "price": 279,
+        "stock": 25,
+        "sku": "MIL-SAMPLE-ARROWROOT-POWDER-1"
+      }
+    ]
+  }
+]

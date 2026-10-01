@@ -10,12 +10,12 @@ type CopyVariantKey = 'trust' | 'urgency'
 
 const COPY_VARIANTS: Record<CopyVariantKey, { title: string; description: string }> = {
   trust: {
-    title: 'Find your everyday essentials.',
-    description: 'Explore the collection. Choose your size, compare prices, and find a favourite.',
+    title: 'Stock your pantry, thoughtfully.',
+    description: 'Explore coconut oils, honey and pantry favourites. Choose the size that feels right for your kitchen.',
   },
   urgency: {
-    title: 'Find your everyday essentials.',
-    description: 'Explore the collection. Choose your size, compare prices, and find a favourite.',
+    title: 'Stock your pantry, thoughtfully.',
+    description: 'Explore coconut oils, honey and pantry favourites. Choose the size that feels right for your kitchen.',
   },
 }
 

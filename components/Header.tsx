@@ -69,9 +69,9 @@ export default function Header() {
               width={40}
               height={40}
               priority
-              className={styles.brandLogo}
+              className={storeConfig.logoUrl === "/millco-logo.svg" ? styles.wordmarkLogo : styles.brandLogo}
             />
-            <span className={styles.brandName}>{storeConfig.brandName}</span>
+            <span className={storeConfig.logoUrl === "/millco-logo.svg" ? styles.wordmarkName : styles.brandName}>{storeConfig.brandName}</span>
           </Link>
 
           <nav className={styles.desktopNav}>

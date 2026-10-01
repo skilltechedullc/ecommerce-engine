@@ -1,8 +1,10 @@
+import Link from 'next/link'
 import { requireAdminPermission } from '@/lib/adminAuth'
 import { fetchInternalApi } from '@/lib/server/internalApi'
 
 type InventoryEvent = {
   id: string
+  product_id: string | null
   event_type: string
   quantity_before: number | null
   quantity_after: number | null
@@ -23,7 +25,7 @@ export default async function AdminInventoryPage() {
         <div>
           <p className="admin-sectionEyebrow">Inventory</p>
           <h2 className="admin-sectionTitle">Stock change history</h2>
-          <p className="admin-sectionText">Automatic stock events are recorded whenever variant stock changes.</p>
+          <p className="admin-sectionText">Recent stock changes are recorded here. To adjust stock, open the product and edit its sizes.</p>
         </div>
       </section>
       <section className="admin-surface admin-tableCard">
@@ -41,10 +43,11 @@ export default async function AdminInventoryPage() {
               </tr>
             </thead>
             <tbody>
+              {!events?.length ? <tr><td colSpan={7}>No stock changes yet. Stock updates will appear here after a product is added or edited.</td></tr> : null}
               {(events ?? []).map((event) => (
                 <tr key={event.id}>
                   <td>{new Date(event.created_at).toLocaleString()}</td>
-                  <td>{event.products?.name ?? 'Deleted product'}</td>
+                  <td>{event.product_id ? <Link href={'/admin/products/' + event.product_id}>{event.products?.name ?? 'Open product'}</Link> : 'Deleted product'}</td>
                   <td>{event.product_variants?.weight ?? event.product_variants?.sku ?? 'Variant'}</td>
                   <td>{event.quantity_before ?? '-'}</td>
                   <td>{event.quantity_after ?? '-'}</td>

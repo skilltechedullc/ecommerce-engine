@@ -3,7 +3,9 @@ type CategorySource = {
   subcategory: string | null
 }
 
-export function buildFormOptions(products: CategorySource[]) {
+export type ManagedCategory = { id: string; name: string; parent_id: string | null; is_active: boolean }
+
+export function buildFormOptions(products: CategorySource[], managed: ManagedCategory[] = []) {
   const categorySet = new Set<string>()
   const subcategoryMap = new Map<string, Set<string>>()
 
@@ -19,6 +21,15 @@ export function buildFormOptions(products: CategorySource[]) {
       subcategoryMap.set(category, new Set<string>())
     }
     subcategoryMap.get(category)?.add(subcategory)
+  }
+
+  for (const category of managed.filter(item => item.is_active)) {
+    if (!category.parent_id) { categorySet.add(category.name); continue }
+    const parent = managed.find(item => item.id === category.parent_id && item.is_active)
+    if (!parent) continue
+    categorySet.add(parent.name)
+    if (!subcategoryMap.has(parent.name)) subcategoryMap.set(parent.name, new Set<string>())
+    subcategoryMap.get(parent.name)?.add(category.name)
   }
 
   const categoryOptions = Array.from(categorySet).sort((a, b) => a.localeCompare(b))

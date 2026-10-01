@@ -8,5 +8,5 @@ export default async function ProtectedAdminLayout({ children }: { children: Rea
     redirect('/admin/login')
   }
 
-  return <AdminChrome role={role}>{children}</AdminChrome>
+  return <AdminChrome role={role} singlePassword={process.env.ADMIN_AUTH_MODE !== "database"} testPayments={Boolean(process.env.RAZORPAY_KEY_ID?.startsWith("rzp_test_"))}>{children}</AdminChrome>
 }

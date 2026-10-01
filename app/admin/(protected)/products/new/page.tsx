@@ -2,7 +2,7 @@ import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import ProductForm from '../ProductForm'
 import { fetchInternalApi } from '@/lib/server/internalApi'
-import { buildFormOptions } from '../formOptions'
+import { buildFormOptions, type ManagedCategory } from '../formOptions'
 
 export default async function NewProductPage() {
   await requireAdminPermission('products:create')
@@ -13,7 +13,8 @@ export default async function NewProductPage() {
     }>
   }>('/api/products/list')
 
-  const { categoryOptions, subcategoryOptionsByCategory } = buildFormOptions(products ?? [])
+  const { categories } = await fetchInternalApi<{ categories: ManagedCategory[] }>('/api/admin/categories')
+  const { categoryOptions, subcategoryOptionsByCategory } = buildFormOptions(products ?? [], categories ?? [])
 
   return (
     <div className="admin-stack" style={{ maxWidth: '1120px' }}>

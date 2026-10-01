@@ -35,7 +35,7 @@ test('customer receipt page uses order tracking lookup instead of public order r
   assert.match(trackingPage, /\/orders\/receipt/)
 })
 
-test('notification template editor and API are available for admin', () => {
+test('notification settings show actual delivery configuration while preserving draft storage', () => {
   const route = readFileSync('app/api/admin/notification-templates/route.ts', 'utf8')
   const page = readFileSync('app/admin/(protected)/settings/notifications/page.tsx', 'utf8')
   const editor = readFileSync('app/admin/(protected)/settings/notifications/NotificationTemplateEditor.tsx', 'utf8')
@@ -43,7 +43,8 @@ test('notification template editor and API are available for admin', () => {
 
   assert.match(route, /notification_templates/)
   assert.match(route, /settings:update/)
-  assert.match(page, /Template editor/)
+  assert.match(page, /Customer notifications/)
+  assert.doesNotMatch(page, /<NotificationTemplateEditor/)
   assert.match(editor, /Save Template/)
   assert.match(migration, /create table if not exists public\.notification_templates/)
 })

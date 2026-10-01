@@ -9,13 +9,13 @@ import { tenantConfig } from '@/lib/tenant.config'
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string; status?: string }>
+  searchParams: Promise<{ scope?: string; status?: string; q?: string }>
 }) {
   await requireAdminPermission('orders:list')
   const { data: recovery, error: recoveryError } = await getSupabaseAdmin().from('checkout_sessions')
     .select('id, razorpay_order_id, razorpay_payment_id, amount_paise, status')
     .in('status', ['payment_verified', 'order_save_failed']).is('order_id', null).order('created_at', { ascending: false }).limit(20)
-  const { scope, status } = await searchParams
+  const { scope, status, q } = await searchParams
   const { orders } = await fetchInternalApi<{
     orders: Array<{
       id: string
@@ -29,20 +29,22 @@ export default async function OrdersPage({
     }>
   }>('/api/orders/list')
 
+  const query = (q ?? "").trim().slice(0, 200)
   const safeOrders = orders ?? []
   const todayStr = new Date().toISOString().slice(0, 10)
   const filteredOrders = safeOrders.filter((order) => {
     const matchesScope = scope !== 'today' || order.created_at?.startsWith(todayStr)
     const matchesStatus = !status || order.status === status
-    return matchesScope && matchesStatus
+    const matchesQuery = !query || [order.id, order.customer_name, order.customer_email, order.razorpay_payment_id].some(value => value?.toLowerCase().includes(query.toLowerCase()))
+    return matchesScope && matchesStatus && matchesQuery
   })
   const pendingCount = filteredOrders.filter((order) => order.status === 'Pending').length
   const deliveredCount = filteredOrders.filter((order) => order.status === 'Delivered').length
   const revenue = filteredOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
-  const hasFilter = scope === 'today' || Boolean(status)
-  const heading = scope === 'today' ? 'Today Orders' : 'Orders'
+  const hasFilter = scope === 'today' || Boolean(status) || Boolean(query) || Boolean(query)
+  const heading = scope === 'today' ? 'Today’s orders (UTC)' : 'Orders'
   const description = scope === 'today'
-    ? 'Orders placed since midnight, ready for quick review and action.'
+    ? 'Orders placed since midnight UTC, ready for review.'
     : 'Every order across the store, with payment and fulfillment visibility.'
 
   return (
@@ -63,6 +65,8 @@ export default async function OrdersPage({
         </a>
       </section>
 
+      <section className="admin-surface"><form action="/admin/orders" className="admin-orderFilters"><label>Find an order<input name="q" defaultValue={query} placeholder="Customer, email, order or payment ID" maxLength={200} /></label><label>Status<select name="status" defaultValue={status ?? ''}><option value="">All statuses</option>{['Pending','Paid','Processing','Shipped','Delivered','Cancelled','Refunded','Return Requested','Returned','Payment Failed'].map(value=><option key={value} value={value}>{value}</option>)}</select></label><label>Period<select name="scope" defaultValue={scope ?? ''}><option value="">All dates</option><option value="today">Today (UTC)</option></select></label><button className="admin-button admin-button--primary">Apply filters</button></form><p className="admin-sectionText">Order value includes all matching orders, including cancelled or unpaid orders. It is not settled revenue. CSV export includes all orders.</p></section>
+
       {recoveryError ? <p role="alert">Payment recovery checks are temporarily unavailable. Review captured payments in your payment dashboard.</p> : recovery?.length ? (
         <section className="admin-surface" role="status">
           <h2 className="admin-sectionTitle">Payments needing review</h2>
@@ -82,7 +86,7 @@ export default async function OrdersPage({
           <p className="admin-metricCard__hint">Orders waiting on action or payment confirmation.</p>
         </section>
         <section className="admin-surface admin-metricCard">
-          <p className="admin-metricCard__label">Revenue</p>
+          <p className="admin-metricCard__label">Order value</p>
           <p className="admin-metricCard__value">{moneyWithSymbol(revenue)}</p>
           <p className="admin-metricCard__hint">Delivered: {deliveredCount} orders</p>
         </section>
@@ -92,7 +96,7 @@ export default async function OrdersPage({
         {filteredOrders.length === 0 ? (
           <div className="admin-emptyState">
             <div className="admin-emptyState__icon">◌</div>
-            <h3>No orders yet</h3>
+            <h3>{hasFilter ? "No matching orders" : "No orders yet"}</h3>
             <p>New checkouts will appear here with clear payment and fulfillment status badges.</p>
           </div>
         ) : (

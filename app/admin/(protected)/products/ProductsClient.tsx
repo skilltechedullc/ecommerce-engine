@@ -227,7 +227,7 @@ export default function ProductsClient({ products }: { products: ProductRecord[]
               onClick={() => setDenseMode((current) => !current)}
               className="admin-button admin-button--secondary"
             >
-              {denseMode ? 'Comforty View' : 'Dense View'}
+              {denseMode ? 'Comfortable view' : 'Dense View'}
             </button>
             {hasFilters ? (
               <button type="button" onClick={clearFilters} className="admin-button admin-button--secondary">

@@ -1,4 +1,6 @@
-import { requireAdminPermission } from '@/lib/adminAuth'
+import { hasPermission } from '@/lib/server/permissions'
+import ManualTrackingEditor from './ManualTrackingEditor'
+import { requireAdminPermission, getAdminRole } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StatusUpdater from './StatusUpdater'
@@ -66,6 +68,7 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>
 }) {
   await requireAdminPermission('orders:read')
+  const canUpdate = hasPermission((await getAdminRole())!, 'orders:update-status')
   const { id } = await params
   let payload: OrderDetailPayload
   let notificationLogs: NotificationLogsPayload['logs'] = []
@@ -85,7 +88,7 @@ export default async function OrderDetailPage({
     .select('id, provider, awb_number, tracking_url, status, pickup_scheduled_at, estimated_delivery')
     .eq('order_id', order.id)
     .order('created_at', { ascending: false })
-    .maybeSingle<ShipmentRow>()
+    .limit(1).maybeSingle<ShipmentRow>()
 
   return (
     <div className="admin-stack">
@@ -105,7 +108,7 @@ export default async function OrderDetailPage({
         </div>
       </section>
 
-      <StatusUpdater orderId={order.id} currentStatus={order.status ?? 'Pending'} />
+      {canUpdate ? <StatusUpdater orderId={order.id} currentStatus={order.status ?? 'Pending'} /> : null}
 
       <div className="admin-detailGrid">
         <InfoCard title="Customer" description="Primary contact details for this order.">
@@ -185,9 +188,10 @@ export default async function OrderDetailPage({
             <p className="admin-sectionText" style={{ marginTop: 0 }}>
               No shipment created yet.
             </p>
-            <CreateShipmentButton orderId={order.id} />
+            {canUpdate && tenantConfig.shipping.provider !== 'manual' ? <CreateShipmentButton orderId={order.id} /> : null}
           </>
         )}
+      {canUpdate && tenantConfig.shipping.provider === 'manual' && (!shipment || shipment.provider === 'manual') ? <ManualTrackingEditor orderId={order.id} shipment={shipment ?? null} /> : null}
       </InfoCard>
 
       <section className="admin-surface admin-tableCard">
@@ -196,11 +200,11 @@ export default async function OrderDetailPage({
           <h2 className="admin-sectionTitle">Email and WhatsApp delivery logs</h2>
           <p className="admin-sectionText">Audit transactional notification outcomes, retries, and provider message IDs.</p>
           <div style={{ marginTop: '12px', maxWidth: '320px' }}>
-            <RetryFailedNotificationsButton orderId={order.id} />
+            {canUpdate ? <RetryFailedNotificationsButton orderId={order.id} /> : null}
           </div>
         </div>
 
-        <table className="admin-table">
+        <div className="admin-tableWrap"><table className="admin-table">
           <thead>
             <tr>
               <th>Event</th>
@@ -269,7 +273,7 @@ export default async function OrderDetailPage({
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </section>
 
       <section className="admin-surface admin-tableCard">
@@ -279,7 +283,7 @@ export default async function OrderDetailPage({
           <p className="admin-sectionText">Clear visibility into unit pricing, quantity, and item subtotals.</p>
         </div>
 
-        <table className="admin-table">
+        <div className="admin-tableWrap"><table className="admin-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -316,7 +320,7 @@ export default async function OrderDetailPage({
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
 
         <div className="admin-statusControl" style={{ borderTop: '1px solid var(--admin-border)', justifyContent: 'flex-end' }}>
           <span className="admin-summaryRow__label">Total amount</span>

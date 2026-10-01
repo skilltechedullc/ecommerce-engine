@@ -2,15 +2,12 @@ import { z } from 'zod'
 
 // ── Shared ──────────────────────────────────────────────────────────────────
 
-const optionalUrl = z
-  .string()
-  .url('Must be a valid URL')
-  .optional()
-  .nullable()
-
-const imageGallerySchema = z.array(
-  z.string().url('Every gallery image must be a valid URL')
-).max(12, 'Maximum 12 images allowed').optional().default([])
+export const imageSourceSchema = z.string().max(2048).refine((value) => {
+  if (/^\/(?!\/)[a-zA-Z0-9_./-]+$/.test(value) && !value.split('/').includes('..')) return true
+  try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password } catch { return false }
+}, 'Use an image URL or a local image path')
+const optionalUrl = imageSourceSchema.optional().nullable()
+const imageGallerySchema = z.array(imageSourceSchema).max(12, 'Maximum 12 images allowed').optional().default([])
 
 // ── Variant ──────────────────────────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { storeConfig } from '@/lib/config'
 import { hasPermission, type UserRole } from '@/lib/server/permissions'
 import SignOutButton from '@/app/admin/SignOutButton'
@@ -12,7 +12,7 @@ const NAV_ITEMS = [
     href: '/admin',
     permission: 'analytics:read',
     label: 'Dashboard',
-    description: 'Overview and revenue',
+    description: 'Store overview',
     icon: DashboardIcon,
   },
   {
@@ -47,7 +47,7 @@ const NAV_ITEMS = [
     href: '/admin/media',
     permission: 'media:manage',
     label: 'Media',
-    description: 'Images and banners',
+    description: 'Product image library',
     icon: ProductsIcon,
   },
   {
@@ -60,7 +60,7 @@ const NAV_ITEMS = [
   {
     href: '/admin/users',
     permission: 'admin-users:manage',
-    label: 'Users',
+    label: 'Staff access',
     description: 'Roles and access',
     icon: SettingsIcon,
   },
@@ -81,10 +81,8 @@ const PAGE_TITLES: Array<{ match: RegExp; title: string; subtitle: string }> = [
   { match: /^\/admin\/users$/, title: 'Users', subtitle: 'Manage admin users, roles and sessions.' },
 ]
 
-export default function AdminChrome({ children, role }: { children: React.ReactNode; role: UserRole }) {
+export default function AdminChrome({ children, role, singlePassword, testPayments }: { children: React.ReactNode; role: UserRole; singlePassword: boolean; testPayments: boolean }) {
   const pathname = usePathname() ?? '/admin'
-  const router = useRouter()
-  const [query, setQuery] = useState('')
   const workspaceHost = (process.env.NEXT_PUBLIC_SITE_URL ?? storeConfig.siteUrl).replace(/^https?:\/\//, '')
 
   const pageMeta = useMemo(() => {
@@ -97,24 +95,6 @@ export default function AdminChrome({ children, role }: { children: React.ReactN
     .slice(0, 2)
     .map((chunk) => chunk[0]?.toUpperCase() ?? '')
     .join('')
-
-  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const value = query.trim().toLowerCase()
-    if (!value) return
-
-    if (value.includes('product') || value.includes('catalog')) {
-      router.push('/admin/products')
-      return
-    }
-
-    if (value.includes('order') || value.includes('payment') || value.includes('ship')) {
-      router.push('/admin/orders')
-      return
-    }
-
-    router.push('/admin')
-  }
 
   return (
     <div className="admin-shell">
@@ -131,7 +111,7 @@ export default function AdminChrome({ children, role }: { children: React.ReactN
         </div>
 
         <nav className="admin-nav" aria-label="Admin navigation">
-          {NAV_ITEMS.filter((item) => hasPermission(role, item.permission)).map((item) => {
+          {NAV_ITEMS.filter((item) => hasPermission(role, item.permission) && !(singlePassword && item.href === '/admin/users')).map((item) => {
             const isActive = item.href === '/admin'
               ? pathname === '/admin'
               : pathname.startsWith(item.href)
@@ -142,6 +122,7 @@ export default function AdminChrome({ children, role }: { children: React.ReactN
                 key={item.href}
                 href={item.href}
                 className={`admin-nav__link${isActive ? ' is-active' : ''}`}
+                aria-current={isActive ? "page" : undefined}
               >
                 <span className="admin-nav__icon"><Icon /></span>
                 <span className="admin-nav__content">
@@ -168,29 +149,14 @@ export default function AdminChrome({ children, role }: { children: React.ReactN
           </div>
 
           <div className="admin-topbar__actions">
-            <form className="admin-search" onSubmit={handleSearchSubmit}>
-              <SearchIcon />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Jump to dashboard, orders, or products"
-                aria-label="Quick search"
-              />
-            </form>
-
-            <div className="admin-profileCard">
-              <div className="admin-profileCard__avatar">{initials || 'AD'}</div>
-              <div className="admin-profileCard__meta">
-                <span className="admin-profileCard__name">Admin</span>
-                <span className="admin-profileCard__role">Store operator</span>
-              </div>
-            </div>
+            <Link href="/" target="_blank" rel="noopener noreferrer" className="admin-button admin-button--secondary admin-button--small">View store ↗</Link>
+            <span className="admin-accessLabel">{singlePassword ? 'Store administrator' : role.replaceAll('_', ' ')}</span>
 
             <SignOutButton className="admin-signoutButton" />
           </div>
         </header>
 
-        <div className="admin-page">{children}</div>
+        <div className="admin-page">{testPayments ? <div className="admin-testNotice" role="status"><strong>Test payments enabled</strong><span>Orders here may be tests. Review products, prices and stock before switching to live payments.</span></div> : null}{children}</div>
       </div>
     </div>
   )
@@ -217,14 +183,6 @@ function ProductsIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 0v18M4 7l8 4 8-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm9 16-4.4-4.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }

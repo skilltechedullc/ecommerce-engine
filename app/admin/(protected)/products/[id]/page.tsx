@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ProductForm from '../ProductForm'
 import { fetchInternalApi } from '@/lib/server/internalApi'
-import { buildFormOptions } from '../formOptions'
+import { buildFormOptions, type ManagedCategory } from '../formOptions'
 import type { Product, ProductVariant } from '@/types/catalog'
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -46,7 +46,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         .map((item) => item.image_url),
     }
   })
-  const { categoryOptions, subcategoryOptionsByCategory } = buildFormOptions(productListPayload.products ?? [])
+  const { categories } = await fetchInternalApi<{ categories: ManagedCategory[] }>('/api/admin/categories')
+  const { categoryOptions, subcategoryOptionsByCategory } = buildFormOptions(productListPayload.products ?? [], categories ?? [])
 
   return (
     <div className="admin-stack" style={{ maxWidth: '1120px' }}>

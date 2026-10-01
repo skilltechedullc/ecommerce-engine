@@ -46,8 +46,8 @@ export default function MediaClient({ assets }: { assets: MediaAsset[] }) {
       <section className="admin-surface admin-toolbarCard">
         <div>
           <p className="admin-sectionEyebrow">Media</p>
-          <h2 className="admin-sectionTitle">Images and banners</h2>
-          <p className="admin-sectionText">Upload product, homepage, and banner assets. Images are signature-checked and re-encoded on upload.</p>
+          <h2 className="admin-sectionTitle">Product image library</h2>
+          <p className="admin-sectionText">Upload product photos here, then copy an image link into a product. Uploading alone does not change the storefront.</p>
         </div>
         <label className={`admin-button admin-button--primary${uploading ? ' is-disabled' : ''}`}>
           {uploading ? 'Uploading...' : 'Upload Image'}
@@ -58,12 +58,14 @@ export default function MediaClient({ assets }: { assets: MediaAsset[] }) {
       </section>
 
       <section className="admin-surface">
+        {assets.length === 0 ? <div className="admin-emptyState"><h3>No uploaded photos yet</h3><p>Upload your first product photo. The sample packaging illustrations are built into the site and are not stored in this library.</p></div> : null}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
           {assets.map((asset) => (
             <article key={asset.path} className="admin-surface" style={{ padding: '10px' }}>
               <div style={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: '8px', overflow: 'hidden', background: 'var(--admin-surface-muted)' }}>
                 <Image src={asset.public_url} alt={asset.path} fill unoptimized style={{ objectFit: 'cover' }} />
               </div>
+              <div className="admin-mediaActions"><a href={asset.public_url} target="_blank" rel="noopener noreferrer">Open image ↗</a><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(asset.public_url); setMessage('Image link copied. Paste it into a product image field.'); setError('') } catch { setError('Could not copy. Open the image and copy its address.') } }}>Copy link</button></div>
               <p className="admin-sectionText" style={{ marginTop: '8px', wordBreak: 'break-word' }}>{asset.path}</p>
             </article>
           ))}

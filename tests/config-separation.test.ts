@@ -86,21 +86,14 @@ test('marketing defaults live outside tenant config', () => {
   assert.doesNotMatch(tenantConfig, /FSSAI Certified Quality/)
 })
 
-test('admin settings preview exposes active configuration safely', () => {
+test('admin settings show live configuration without misleading draft controls', () => {
   const chrome = readFileSync('components/admin/AdminChrome.tsx', 'utf8')
-  const settingsPage = readFileSync('app/admin/(protected)/settings/page.tsx', 'utf8')
-  const editor = readFileSync('app/admin/(protected)/settings/SettingsDraftEditor.tsx', 'utf8')
-
-  assert.match(chrome, /href: '\/admin\/settings'/)
-  assert.match(settingsPage, /Store settings/)
-  assert.match(settingsPage, /Paid module flags/)
-  assert.match(settingsPage, /store_settings/)
-  assert.match(settingsPage, /tenantConfig\.legal/)
-  assert.match(settingsPage, /tenantConfig\.features/)
-  assert.match(settingsPage, /SettingsDraftEditor/)
-  assert.match(editor, /Save Draft/)
-  assert.match(editor, /Publish Snapshot/)
-  assert.match(editor, /\/api\/admin\/store-settings/)
+  const page = readFileSync('app/admin/(protected)/settings/page.tsx', 'utf8')
+  assert.match(chrome, /View store/)
+  assert.match(page, /Your store settings/)
+  assert.match(page, /store\.legal/)
+  assert.match(page, /store\.features/)
+  assert.doesNotMatch(page, /SettingsDraftEditor|Paid module flags|Publish Snapshot/)
 })
 
 test('store settings persistence API is audit logged and service-only', () => {
@@ -137,5 +130,5 @@ test('store theme presets are available and wired to tenant config', () => {
   assert.match(presets, /boutique/)
   assert.match(presets, /NEXT_PUBLIC_THEME_PRESET/)
   assert.match(config, /themePreset/)
-  assert.match(settings, /Theme preset/)
+  assert.match(settings, /Your store settings/)
 })

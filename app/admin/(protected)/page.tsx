@@ -202,8 +202,8 @@ export default async function AdminDashboard() {
     <div className="admin-stack">
       <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
         <StatCard href="/admin/orders" label="Total Orders" value={String(totalOrders)} hint="All-time completed and active orders." />
-        <StatCard href="/admin/orders" label="Revenue" value={moneyWithSymbol(totalRevenue)} hint={`This month: ${moneyWithSymbol(thisMonthRevenue)}`} />
-        <StatCard href="/admin/orders?scope=today" label="Today Orders" value={String(todaysOrders)} hint="Click through to review today’s orders." />
+        <StatCard href="/admin/orders" label="Order value" value={moneyWithSymbol(totalRevenue)} hint={`This month: ${moneyWithSymbol(thisMonthRevenue)}`} />
+        <StatCard href="/admin/orders?scope=today" label="Today (UTC)" value={String(todaysOrders)} hint="Click through to review today’s orders." />
         <section className="admin-surface admin-metricCard admin-interactiveCard">
           <p className="admin-metricCard__label">This Month</p>
           <p className="admin-metricCard__value">{moneyWithSymbol(thisMonthRevenue)}</p>
@@ -224,7 +224,7 @@ export default async function AdminDashboard() {
             <div>
               <p className="admin-metricCard__label" style={{ marginBottom: '8px' }}>Website</p>
               <p className="admin-metricCard__value" style={{ marginTop: 0, fontSize: '2rem' }}>{webOrdersCount}</p>
-              <p className="admin-metricCard__hint">Revenue: {moneyWithSymbol(webRevenue)}</p>
+              <p className="admin-metricCard__hint">Order value: {moneyWithSymbol(webRevenue)}</p>
             </div>
             <span style={{ color: 'var(--tenant-primary-gradient-end)', fontSize: '18px' }}>●</span>
           </div>
@@ -233,7 +233,7 @@ export default async function AdminDashboard() {
             <div>
               <p className="admin-metricCard__label" style={{ marginBottom: '8px' }}>WhatsApp</p>
               <p className="admin-metricCard__value" style={{ marginTop: 0, fontSize: '2rem' }}>{whatsappOrdersCount}</p>
-              <p className="admin-metricCard__hint">Revenue: {moneyWithSymbol(whatsappRevenue)}</p>
+              <p className="admin-metricCard__hint">Order value: {moneyWithSymbol(whatsappRevenue)}</p>
             </div>
             <span style={{ color: 'var(--tenant-primary-dark)', fontSize: '18px' }}>●</span>
           </div>
@@ -326,18 +326,18 @@ export default async function AdminDashboard() {
         <section className="admin-surface">
           <p className="admin-sectionEyebrow">Sales Snapshot</p>
           <h2 className="admin-sectionTitle">Store momentum</h2>
-          <p className="admin-sectionText">Real revenue and order flow for the last seven days.</p>
+          <p className="admin-sectionText">Order value and activity for the last seven days. Values include unpaid and cancelled orders; they are not settled revenue.</p>
 
           <div className="admin-chartPlaceholder">
             <div className="admin-summaryRow">
-              <span className="admin-summaryRow__label">Revenue, last 7 days</span>
+              <span className="admin-summaryRow__label">Order value, last 7 days</span>
               <span className="admin-summaryRow__value">{moneyWithSymbol(revenueLast7Days)}</span>
             </div>
             <div className="admin-summaryRow">
               <span className="admin-summaryRow__label">Orders, last 7 days</span>
               <span className="admin-summaryRow__value">{orderCountLast7Days}</span>
             </div>
-            <div className="admin-chartGrid" aria-label="Last seven days revenue chart">
+            <div className="admin-chartGrid" aria-label="Last seven days order value chart">
               {bars.map((bar) => (
                 <div key={bar.key} className="admin-chartColumn">
                   <span className="admin-chartColumn__value">{moneyWithSymbol(bar.revenue)}</span>
@@ -358,7 +358,7 @@ export default async function AdminDashboard() {
         <section className="admin-surface">
           <p className="admin-sectionEyebrow">Best Performers</p>
           <h2 className="admin-sectionTitle">Top products</h2>
-          <p className="admin-sectionText">Ranked by revenue, with quantity sold shown for faster catalog decisions.</p>
+          <p className="admin-sectionText">Ranked by ordered value, including all order statuses.</p>
 
           {topProducts.length === 0 ? (
             <div className="admin-emptyState">

@@ -29,6 +29,8 @@ type RecommendedProduct = {
 }
 
 type OrderRecord = {
+  discount_amount?: number
+  coupon_code?: string | null
   total_amount: number | string | null
   payment_method?: string | null
 }
@@ -45,6 +47,8 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const confirmationToken = (params.token ?? '').trim()
 
   let orderTotal = 0
+  let discountAmount = 0
+  let couponCode = ''
   let itemSummary: string[] = []
   let purchasedProductIds = new Set<string>()
   let paymentMethod = params.payment_method === 'cod' ? 'cod' : 'razorpay'
@@ -54,7 +58,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     const [{ data: order }, { data: items }] = await Promise.all([
       supabaseAdmin
         .from('orders')
-        .select('total_amount, payment_method')
+        .select('total_amount, payment_method, discount_amount, coupon_code')
         .eq('id', orderId)
         .eq('confirmation_token', confirmationToken)
         .maybeSingle<OrderRecord>(),
@@ -70,6 +74,8 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
       if (Number.isFinite(dbTotal) && dbTotal > 0) {
         orderTotal = dbTotal
       }
+      discountAmount = Number(order.discount_amount ?? 0)
+      couponCode = order.coupon_code ?? ''
       paymentMethod = order.payment_method === 'cod' ? 'cod' : 'razorpay'
     }
 
@@ -141,6 +147,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               <strong>{orderId || 'Will appear in confirmation message'}</strong>
             </div>
             <div className={styles.detailItem}>
+              {discountAmount > 0 && <span>Coupon {couponCode}: −{moneyWithSymbol(discountAmount)}</span>}
               <span>Total Amount</span>
               <strong>{hasValidTotal ? moneyWithSymbol(orderTotal) : 'Included in your confirmation'}</strong>
             </div>

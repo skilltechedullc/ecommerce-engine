@@ -9,6 +9,11 @@ type ReceiptOrder = {
   id: string
   customer_name: string | null
   customer_phone: string | null
+  customerName?: string | null
+  createdAt?: string | null
+  shippingAmount?: number
+  discountAmount?: number
+  couponCode?: string | null
   totalAmount?: number | null
   total_amount?: number | null
   status: string | null
@@ -104,8 +109,8 @@ export default function ReceiptClient({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '18px' }}>
               <ReceiptFact label="Order ID" value={order.id} />
-              <ReceiptFact label="Date" value={order.created_at ? new Date(order.created_at).toLocaleString() : '-'} />
-              <ReceiptFact label="Customer" value={order.customer_name || '-'} />
+              <ReceiptFact label="Date" value={(order.createdAt ?? order.created_at) ? new Date((order.createdAt ?? order.created_at)!).toLocaleString() : '-'} />
+              <ReceiptFact label="Customer" value={order.customerName || order.customer_name || '-'} />
               <ReceiptFact label="Status" value={order.status || '-'} />
               <ReceiptFact label="Payment" value={formatPaymentMethod(order.payment_method)} />
             </div>
@@ -133,6 +138,9 @@ export default function ReceiptClient({
               </table>
             </div>
 
+            <p style={{ textAlign: 'right' }}>Products: {moneyWithSymbol(items.reduce((s,i)=>s+Number(i.price ?? 0)*Number(i.quantity ?? 0),0))}</p>
+            {Boolean(order.discountAmount) && <p style={{ textAlign: 'right' }}>Discount ({order.couponCode}): −{moneyWithSymbol(order.discountAmount ?? 0)}</p>}
+            <p style={{ textAlign: 'right' }}>Delivery: {moneyWithSymbol(order.shippingAmount ?? 0)}</p>
             <p style={{ margin: '22px 0 0', textAlign: 'right', fontSize: '22px', fontWeight: 800 }}>
               Total: {moneyWithSymbol(total)}
             </p>

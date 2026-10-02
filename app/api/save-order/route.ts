@@ -22,7 +22,6 @@ import {
 } from '@/lib/server/checkoutHardening'
 import { enforceRateLimit } from '@/lib/server/rateLimit'
 import { writeAuditLog } from '@/lib/server/audit'
-import { calculateShippingRate } from '@/lib/shipping/rates'
 
 const razorpay = new Razorpay({
   key_id: env('RAZORPAY_KEY_ID'),
@@ -79,6 +78,7 @@ type CheckoutSessionRow = {
   id: string
   razorpay_order_id: string
   amount_paise: number
+  discount_amount: number
   subtotal_amount: number
   shipping_amount: number
   currency: string
@@ -336,7 +336,7 @@ export async function POST(req: NextRequest) {
 
     const { data: checkoutSession, error: checkoutSessionError } = await supabaseAdmin
       .from('checkout_sessions')
-      .select('id, razorpay_order_id, amount_paise, subtotal_amount, shipping_amount, currency, status')
+      .select('id, razorpay_order_id, amount_paise, subtotal_amount, discount_amount, shipping_amount, currency, status')
       .eq('razorpay_order_id', razorpay_order_id)
       .maybeSingle<CheckoutSessionRow>()
 
@@ -366,7 +366,8 @@ export async function POST(req: NextRequest) {
       items,
     })
 
-    const quote = calculateShippingRate(expectedTotal, undefined, { address: customer.address })
+    // Use the discount/shipping snapshot actually charged, including webhook recovery.
+    const quote = { subtotal: expectedTotal, shippingAmount: Number(checkoutSession.shipping_amount), total: Math.round((expectedTotal - Number(checkoutSession.discount_amount) + Number(checkoutSession.shipping_amount)) * 100) / 100 }
     const expectedAmountPaise = amountToPaise(quote.total)
     if (Number(checkoutSession.amount_paise) !== expectedAmountPaise) {
       await updateCheckoutSession({

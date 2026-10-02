@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await getSupabaseAdmin()
       .from('orders')
-      .select('id, customer_name, customer_phone, total_amount, status, source, created_at, order_items(product_name, quantity, price), shipments(provider, awb_number, tracking_url, status, estimated_delivery)')
+      .select('id, customer_name, customer_phone, total_amount, shipping_amount, discount_amount, coupon_code, payment_method, status, source, created_at, order_items(product_name, quantity, price), shipments(provider, awb_number, tracking_url, status, estimated_delivery)')
       .eq('id', orderId)
       .maybeSingle()
 
@@ -35,6 +35,10 @@ export async function GET(req: NextRequest) {
         id: data.id,
         customerName: data.customer_name,
         totalAmount: data.total_amount,
+        shippingAmount: data.shipping_amount,
+        discountAmount: data.discount_amount,
+        couponCode: data.coupon_code,
+        payment_method: data.payment_method,
         status: data.status,
         source: data.source,
         createdAt: data.created_at,

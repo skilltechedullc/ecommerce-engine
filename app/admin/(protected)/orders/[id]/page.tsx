@@ -18,6 +18,9 @@ type OrderDetailPayload = {
     customer_email: string | null
     customer_phone: string | null
     customer_address: string | null
+    shipping_amount?: number
+    discount_amount?: number
+    coupon_code?: string | null
     total_amount: number | null
     status: string | null
     payment_method?: string | null
@@ -323,6 +326,8 @@ export default async function OrderDetailPage({
         </table></div>
 
         <div className="admin-statusControl" style={{ borderTop: '1px solid var(--admin-border)', justifyContent: 'flex-end' }}>
+          {Boolean(order.discount_amount) && <span>Coupon {order.coupon_code}: −{moneyWithSymbol(order.discount_amount ?? 0)}</span>}
+          <span>Delivery: {moneyWithSymbol(order.shipping_amount ?? 0)}</span>
           <span className="admin-summaryRow__label">Total amount</span>
           <span className="admin-totalAmount">{moneyWithSymbol(order.total_amount ?? 0)}</span>
         </div>

@@ -25,6 +25,9 @@ export interface EmailOrder {
   customer_phone?: string
   customer_address?: string
   total_amount: number
+  shipping_amount?: number
+  discount_amount?: number
+  coupon_code?: string | null
   razorpay_payment_id?: string
   created_at?: string
 }
@@ -33,7 +36,7 @@ export type OrderStatusEmailType = 'processing' | 'shipped' | 'delivered'
 
 // ─── Shared HTML helpers ────────────────────────────────────────────────────
 
-function itemsTable(items: EmailOrderItem[]): string {
+function itemsTable(items: EmailOrderItem[], order: EmailOrder): string {
   const rows = items
     .map(
       (item) => `
@@ -66,10 +69,13 @@ function itemsTable(items: EmailOrderItem[]): string {
       </thead>
       <tbody>${rows}</tbody>
       <tfoot>
+        <tr><td colspan="3" style="padding:12px;text-align:right;">Products subtotal</td><td style="padding:12px;text-align:right;">${storeConfig.currencySymbol}${items.reduce((s,i)=>s+i.price*i.quantity,0).toLocaleString(tenantConfig.region.numberLocale)}</td></tr>
+        ${order.discount_amount ? '<tr><td colspan="3" style="padding:12px;text-align:right;">Discount (' + escapeEmailText(order.coupon_code ?? '') + ')</td><td style="padding:12px;text-align:right;">−' + storeConfig.currencySymbol + Number(order.discount_amount).toLocaleString(tenantConfig.region.numberLocale) + '</td></tr>' : ''}
+        <tr><td colspan="3" style="padding:12px;text-align:right;">Delivery</td><td style="padding:12px;text-align:right;">${storeConfig.currencySymbol}${Number(order.shipping_amount ?? 0).toLocaleString(tenantConfig.region.numberLocale)}</td></tr>
         <tr style="background:#F9FAFB;">
           <td colspan="3" style="padding:12px;text-align:right;font-size:14px;font-weight:600;color:#374151;">Order Total</td>
           <td style="padding:12px;text-align:right;font-size:18px;font-weight:700;color:#1B4332;">
-            ${storeConfig.currencySymbol}${items.reduce((s, i) => s + i.price * i.quantity, 0).toLocaleString(tenantConfig.region.numberLocale)}
+            ${storeConfig.currencySymbol}${Number(order.total_amount).toLocaleString(tenantConfig.region.numberLocale)}
           </td>
         </tr>
       </tfoot>
@@ -139,7 +145,7 @@ export async function sendOrderConfirmationEmail(
     </table>
 
     <p style="font-size:14px;line-height:1.6;">Use this full order ID and your checkout phone number to <a href="${storeConfig.siteUrl}/orders/track">track your order</a>.</p>
-    ${itemsTable(items)}
+    ${itemsTable(items, order)}
 
     ${order.customer_address ? `
     <div style="margin-top:24px;padding:16px;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;">
@@ -206,7 +212,7 @@ export async function sendAdminNewOrderEmail(
     </table>
 
     <p style="font-size:14px;line-height:1.6;">Use this full order ID and your checkout phone number to <a href="${storeConfig.siteUrl}/orders/track">track your order</a>.</p>
-    ${itemsTable(items)}
+    ${itemsTable(items, order)}
 
     <div style="margin-top:24px;text-align:center;">
       <a href="${storeConfig.siteUrl}/admin/orders/${order.id}"
@@ -275,7 +281,7 @@ export async function sendOrderStatusUpdateEmail(
     </table>
 
     <p style="font-size:14px;line-height:1.6;">Use this full order ID and your checkout phone number to <a href="${storeConfig.siteUrl}/orders/track">track your order</a>.</p>
-    ${itemsTable(items)}
+    ${itemsTable(items, order)}
 
     <p style="margin-top:24px;font-size:14px;color:#6B7280;line-height:1.6;">
       Need help with your order? Reply to this email and our team will assist you.

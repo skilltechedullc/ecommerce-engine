@@ -9,6 +9,7 @@ export type UserRole =
 const ROLE_PERMISSIONS: Record<UserRole, readonly string[]> = {
   super_admin: ['*'],
   owner: [
+    'coupons:manage',
     'analytics:read',
     'exports:read',
     'orders:list',

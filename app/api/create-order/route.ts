@@ -4,11 +4,11 @@ import { NextRequest } from 'next/server'
 import crypto from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { storeConfig } from '@/lib/config'
-import { HttpError, assertArray, assertPositiveNumber, assertString, jsonOk, parseJson, withApiHandler } from '@/lib/server/api'
-import { aggregateCheckoutItems, amountToPaise } from '@/lib/server/checkoutHardening'
+import { HttpError, jsonOk, parseJson, withApiHandler } from '@/lib/server/api'
+import { amountToPaise } from '@/lib/server/checkoutHardening'
 import { env } from '@/lib/server/env'
 import { enforceRateLimit } from '@/lib/server/rateLimit'
-import { calculateShippingRate } from '@/lib/shipping/rates'
+import { checkoutQuote } from '@/lib/server/checkoutQuote'
 
 const razorpay = new Razorpay({
   key_id: env('RAZORPAY_KEY_ID'),
@@ -22,44 +22,8 @@ type CreateOrderBody = {
   }>
   customer?: unknown
   deliveryAddress?: string
-}
-
-type ParsedOrderItem = {
-  variant_id: string
-  quantity: number
-}
-
-type CanonicalCheckoutItem = {
-  variant_id: string
-  product_id: string
-  product_name: string
-  price: number
-  quantity: number
-}
-
-function parseItems(value: unknown): ParsedOrderItem[] {
-  const items = assertArray<{ variant_id?: string; quantity?: number }>(value, 'items')
-  if (items.length === 0) {
-    throw new HttpError(400, 'items must include at least one item', 'VALIDATION_ERROR')
-  }
-
-  const parsedItems = items.map((item, index) => {
-    if (!item || typeof item !== 'object') {
-      throw new HttpError(400, `items[${index}] is invalid`, 'VALIDATION_ERROR')
-    }
-
-    const quantity = assertPositiveNumber(item.quantity, `items[${index}].quantity`)
-    if (!Number.isInteger(quantity)) {
-      throw new HttpError(400, `items[${index}].quantity must be an integer`, 'VALIDATION_ERROR')
-    }
-
-    return {
-      variant_id: assertString(item.variant_id, `items[${index}].variant_id`),
-      quantity,
-    }
-  })
-
-  return aggregateCheckoutItems(parsedItems)
+  couponCode?: string
+  expectedAmount?: number
 }
 
 export async function POST(req: NextRequest) {
@@ -71,78 +35,13 @@ export async function POST(req: NextRequest) {
     })
 
     const body = await parseJson<CreateOrderBody>(req)
-    const items = parseItems(body.items)
     const parsedCustomer = checkoutCustomerSchema.safeParse(body.customer)
     if (!parsedCustomer.success) throw new HttpError(400, 'Valid customer contact and delivery details are required', 'INVALID_CUSTOMER')
     const customer = parsedCustomer.data
 
     const supabaseAdmin = getSupabaseAdmin()
-    const variantIds = items.map((item) => item.variant_id)
-
-    const { data: variants, error: variantsError } = await supabaseAdmin
-      .from('product_variants')
-      .select('id, product_id, weight, price, stock')
-      .in('id', variantIds)
-
-    if (variantsError) {
-      throw new HttpError(500, variantsError.message, 'DB_FETCH_FAILED')
-    }
-
-    const variantById = new Map((variants ?? []).map((variant) => [String(variant.id), variant]))
-    if (variantById.size !== variantIds.length) {
-      throw new HttpError(400, 'One or more variants are invalid', 'VALIDATION_ERROR')
-    }
-
-    const productIds = Array.from(new Set((variants ?? []).map((variant) => String(variant.product_id))))
-    const { data: products, error: productsError } = await supabaseAdmin
-      .from('products')
-      .select('id, name, is_active')
-      .in('id', productIds)
-
-    if (productsError) {
-      throw new HttpError(500, productsError.message, 'DB_FETCH_FAILED')
-    }
-
-    const productById = new Map((products ?? []).map((product) => [String(product.id), product]))
-
-    let amount = 0
-    const canonicalItems: CanonicalCheckoutItem[] = []
-    for (const [index, item] of items.entries()) {
-      const dbVariant = variantById.get(item.variant_id)
-      if (!dbVariant) {
-        throw new HttpError(400, `items[${index}] has invalid variant`, 'VALIDATION_ERROR')
-      }
-
-      const dbProduct = productById.get(String(dbVariant.product_id))
-      if (!dbProduct || !dbProduct.is_active) {
-        throw new HttpError(400, `items[${index}] references inactive product`, 'VALIDATION_ERROR')
-      }
-
-      const dbPrice = Number(dbVariant.price)
-      const dbStock = Number(dbVariant.stock)
-      if (!Number.isFinite(dbPrice) || dbPrice <= 0) {
-        throw new HttpError(400, `items[${index}] has invalid price`, 'VALIDATION_ERROR')
-      }
-
-      if (item.quantity > dbStock) {
-        throw new HttpError(
-          400,
-          `items[${index}] exceeds available stock (${dbStock})`,
-          'INSUFFICIENT_STOCK'
-        )
-      }
-
-      amount += dbPrice * item.quantity
-      canonicalItems.push({
-        variant_id: item.variant_id,
-        product_id: String(dbVariant.product_id),
-        product_name: String(dbProduct.name) + (dbVariant.weight ? ' - ' + String(dbVariant.weight) : ''),
-        price: dbPrice,
-        quantity: item.quantity,
-      })
-    }
-
-    const quote = calculateShippingRate(amount, undefined, { address: customer.address })
+    const quote = await checkoutQuote(body.items, body.couponCode, customer.address)
+    if (body.expectedAmount !== undefined && body.expectedAmount !== amountToPaise(quote.total)) throw new HttpError(409, 'Your total changed. Reapply the coupon or refresh your cart before paying.', 'TOTAL_CHANGED')
     const amountPaise = amountToPaise(quote.total)
     const checkoutSessionId = crypto.randomUUID()
 
@@ -156,27 +55,31 @@ export async function POST(req: NextRequest) {
     })
 
     const { error: checkoutError } = await supabaseAdmin
-      .from('checkout_sessions')
-      .insert({
+      .rpc('reserve_coupon_checkout', { p_session: {
         id: checkoutSessionId,
         razorpay_order_id: order.id,
         amount_paise: amountPaise,
         subtotal_amount: quote.subtotal,
         shipping_amount: quote.shippingAmount,
         currency: storeConfig.currency,
-        items: canonicalItems,
+        items: quote.items,
+        coupon_id: quote.coupon?.id ?? null,
+        coupon_code: quote.coupon?.code ?? null,
+        discount_amount: quote.discount,
         customer,
         status: 'created',
-      })
+      } })
 
     if (checkoutError) {
-      throw new HttpError(500, checkoutError.message, 'DB_INSERT_CHECKOUT_SESSION_FAILED')
+      throw new HttpError(409, 'Checkout could not be started. Reapply your coupon or retry without it.', 'CHECKOUT_RESERVATION_FAILED')
     }
 
     return jsonOk({
       order_id: order.id,
       amount: order.amount,
       subtotal: quote.subtotal,
+      discount_amount: quote.discount,
+      coupon_code: quote.coupon?.code ?? null,
       shipping_amount: quote.shippingAmount,
       checkout_session_id: checkoutSessionId,
     }, { requestId })

@@ -43,6 +43,7 @@ const NAV_ITEMS = [
     description: 'Stock history',
     icon: ProductsIcon,
   },
+  { href: '/admin/coupons', permission: 'coupons:manage', label: 'Coupons', description: 'Discount offers', icon: ProductsIcon },
   {
     href: '/admin/media',
     permission: 'media:manage',
@@ -67,6 +68,7 @@ const NAV_ITEMS = [
 ] as const
 
 const PAGE_TITLES: Array<{ match: RegExp; title: string; subtitle: string }> = [
+  { match: /^\/admin\/coupons$/, title: 'Coupons', subtitle: 'Create and manage customer discounts.' },
   { match: /^\/admin$/, title: 'Dashboard', subtitle: 'Monitor your store performance at a glance.' },
   { match: /^\/admin\/orders$/, title: 'Orders', subtitle: 'Track payments, fulfillment, and recent activity.' },
   { match: /^\/admin\/orders\//, title: 'Order Detail', subtitle: 'Review customer details and update fulfillment status.' },

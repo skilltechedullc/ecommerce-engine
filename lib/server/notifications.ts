@@ -113,7 +113,7 @@ async function fetchOrderWithItems(orderId: string): Promise<{ order: Notificati
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
     .from('orders')
-    .select('id, customer_name, customer_email, customer_phone, customer_address, total_amount, razorpay_payment_id, status, order_items(product_name, quantity, price)')
+    .select('id, customer_name, customer_email, customer_phone, customer_address, total_amount, shipping_amount, discount_amount, coupon_code, razorpay_payment_id, status, order_items(product_name, quantity, price)')
     .eq('id', orderId)
     .single()
 
@@ -126,6 +126,9 @@ async function fetchOrderWithItems(orderId: string): Promise<{ order: Notificati
     customer_phone: String(data.customer_phone ?? ''),
     customer_address: String(data.customer_address ?? ''),
     total_amount: Number(data.total_amount ?? 0),
+    shipping_amount: Number(data.shipping_amount ?? 0),
+    discount_amount: Number(data.discount_amount ?? 0),
+    coupon_code: data.coupon_code,
     razorpay_payment_id: data.razorpay_payment_id ? String(data.razorpay_payment_id) : undefined,
     status: String(data.status ?? 'Pending') as OrderStatus,
   }

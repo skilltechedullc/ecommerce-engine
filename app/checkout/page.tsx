@@ -26,6 +26,8 @@ function loadRazorpayScript(): Promise<boolean> {
   })
 }
 
+type CouponQuote = { code: string; subtotal: number; discount: number; shippingAmount: number; total: number; fingerprint: string }
+
 type Status = 'idle' | 'creating' | 'paying' | 'saving' | 'error'
 type PaymentMethod = 'razorpay' | 'cod'
 
@@ -62,7 +64,26 @@ export default function CheckoutPage() {
   const [activePaymentMethod, setActivePaymentMethod] = useState<PaymentMethod>('razorpay')
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shippingQuote = calculateShippingRate(total)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null)
+  const [couponError, setCouponError] = useState('')
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
+  const couponBusy = useRef(false)
+  const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), form.address])
+  const activeCoupon = couponQuote?.fingerprint === fingerprint ? couponQuote : null
+  const shippingQuote = activeCoupon ?? calculateShippingRate(total, undefined, { address: form.address })
+  async function applyCoupon() {
+    if (couponBusy.current || checkoutBusy.current) return
+    couponBusy.current = true; setCheckingCoupon(true); setCouponError(''); setCouponQuote(null)
+    try {
+      if (!couponCode.trim()) throw new Error('Enter a coupon code')
+      const response = await fetch('/api/checkout/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map(i => ({ variant_id: i.variant_id, quantity: i.quantity })), couponCode, address: form.address }) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not apply coupon')
+      setCouponQuote({ ...data, fingerprint }); setCouponCode(data.code)
+    } catch (e) { setCouponError(e instanceof Error ? e.message : 'Could not apply coupon') }
+    finally { couponBusy.current = false; setCheckingCoupon(false) }
+  }
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched] = useState<Partial<Record<keyof FieldErrors, boolean>>>({})
@@ -127,7 +148,7 @@ export default function CheckoutPage() {
 
 
   const handlePay = async (paymentMethod: PaymentMethod = 'razorpay') => {
-    if (checkoutBusy.current) return
+    if (checkoutBusy.current || couponBusy.current) return
     checkoutBusy.current = true
     try {
     if (pendingPayment) {
@@ -182,6 +203,7 @@ export default function CheckoutPage() {
 
     try {
       if (paymentMethod === 'cod') {
+        if (activeCoupon) throw new Error('Coupons apply to online payments. Remove the coupon to pay on delivery.')
         await submitManualOrder({ name, email, phone, address })
         return
       }
@@ -195,6 +217,8 @@ export default function CheckoutPage() {
             variant_id: item.variant_id,
             quantity: item.quantity,
           })),
+          couponCode: activeCoupon?.code,
+          expectedAmount: Math.round(shippingQuote.total * 100),
           deliveryAddress: address,
           customer: { name, email, phone, address },
         }),
@@ -269,7 +293,7 @@ export default function CheckoutPage() {
     : `Pay Securely ${moneyWithSymbol(shippingQuote.total)}`
 
   const whatsAppMessage = cart.length > 0
-    ? `${tenantConfig.marketing.whatsapp.checkoutIntroMessage}\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(shippingQuote.total)}`
+    ? `${tenantConfig.marketing.whatsapp.checkoutIntroMessage}\n${cart.map((item) => `- ${item.name} (${item.variant_name}) ×${item.quantity}`).join('\n')}\nTotal: ${moneyWithSymbol(calculateShippingRate(total, undefined, { address: form.address }).total)}`
     : ''
   const whatsAppUrl = whatsAppMessage ? buildTenantWhatsAppUrl(whatsAppMessage) : ''
 
@@ -385,10 +409,20 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              <div className={styles.couponBox}>
+                <label htmlFor="coupon-code" className={styles.fieldLabel}>Have a coupon?</label>
+                <div className={styles.couponRow}><input id="coupon-code" className={styles.input} value={couponCode} maxLength={32} placeholder="Enter coupon code" autoCapitalize="characters" disabled={isLoading || checkingCoupon || !!pendingPayment} onChange={e=>{setCouponCode(e.target.value); setCouponQuote(null); setCouponError('')}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault(); void applyCoupon()}}} />
+                <button type="button" className={styles.couponButton} disabled={isLoading || checkingCoupon || !!pendingPayment} onClick={applyCoupon}>{checkingCoupon ? 'Checking…' : 'Apply'}</button></div>
+                <div aria-live="polite">{activeCoupon && <p className={styles.couponSuccess}>{activeCoupon.code} applied — you save {moneyWithSymbol(activeCoupon.discount)}. <button type="button" disabled={isLoading || !!pendingPayment} onClick={()=>{setCouponQuote(null);setCouponCode('')}}>Remove</button></p>}
+                {couponQuote && !activeCoupon && <p>Cart or address changed. Apply your coupon again.</p>}
+                {couponError && <p className={styles.fieldError}>{couponError}</p>}</div>
+                <p className={styles.summaryItemMeta}>One coupon per online order. Free delivery eligibility uses the discounted product total.</p>
+              </div>
               <div className={styles.summaryTotal}>
                 <span>Subtotal</span>
-                <span>{moneyWithSymbol(total)}</span>
+                <span>{moneyWithSymbol(activeCoupon?.subtotal ?? total)}</span>
               </div>
+              {activeCoupon && <div className={styles.summaryTotal}><span>Discount ({activeCoupon.code})</span><span>−{moneyWithSymbol(activeCoupon.discount)}</span></div>}
               <div className={styles.summaryTotal}>
                 <span>Shipping</span>
                 <span>{shippingQuote.shippingAmount > 0 ? moneyWithSymbol(shippingQuote.shippingAmount) : 'Free'}</span>
@@ -402,7 +436,7 @@ export default function CheckoutPage() {
                 <div className={styles.errorBox}>{errorMsg || 'Something went wrong. Please try again.'}</div>
               )}
 
-              <button onClick={() => handlePay('razorpay')} disabled={isLoading || cart.length === 0} className={styles.payButton}>
+              <button onClick={() => handlePay('razorpay')} disabled={isLoading || checkingCoupon || cart.length === 0} className={styles.payButton}>
                 {!isLoading && (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -416,7 +450,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => handlePay('cod')}
-                  disabled={isLoading || cart.length === 0}
+                  disabled={isLoading || checkingCoupon || cart.length === 0}
                   className={styles.whatsAppFallback}
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
@@ -494,7 +528,7 @@ export default function CheckoutPage() {
             </div>
             <button
               onClick={() => handlePay('razorpay')}
-              disabled={isLoading || cart.length === 0}
+              disabled={isLoading || checkingCoupon || cart.length === 0}
               className={styles.mobileStickyPayBtn}
             >
               {isLoading ? buttonLabel : `Pay Securely ${moneyWithSymbol(shippingQuote.total)}`}

@@ -548,3 +548,11 @@
     min-height: initial;
   }
 }
+
+.couponBox { padding: 18px 0; border-top: 1px solid #e6e5dc; }
+.couponRow { display: flex; gap: 8px; margin: 8px 0; }
+.couponRow input { min-width: 0; flex: 1; }
+.couponButton { background: #214c39; color: white; border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; cursor: pointer; }
+.couponButton:disabled { opacity: .6; cursor: wait; }
+.couponSuccess { color: #214c39; font-size: 14px; }
+.couponSuccess button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; }

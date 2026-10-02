@@ -556,3 +556,7 @@
 .couponButton:disabled { opacity: .6; cursor: wait; }
 .couponSuccess { color: #214c39; font-size: 14px; }
 .couponSuccess button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; }
+
+.otpBox { margin: 14px 0; padding: 16px; border: 1px solid #cddcd1; border-radius: 12px; background: #f5faf6; font-size: 14px; }
+.otpBox p { line-height: 1.5; margin: 10px 0; }
+.summaryTotal > span:last-child { white-space: nowrap; }

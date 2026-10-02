@@ -4,6 +4,6 @@ import type { Coupon } from '@/lib/coupons'
 import CouponsClient from './CouponsClient'
 export default async function CouponsPage() {
  await requireAdminPermission('coupons:manage')
- const data = await fetchInternalApi<{ coupons: Coupon[] }>('/api/admin/coupons')
- return <CouponsClient coupons={data.coupons} />
+ const data = await fetchInternalApi<{ coupons: Coupon[]; otpReady: boolean }>('/api/admin/coupons')
+ return <CouponsClient coupons={data.coupons} otpReady={data.otpReady} />
 }

@@ -1,3 +1,4 @@
+import { whatsappOtpReady } from '@/lib/server/whatsappOtp'
 import { NextRequest } from 'next/server'
 import { getAdminRole } from '@/lib/adminAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
     if (all.error || used.error) throw new HttpError(500, 'Could not load coupon usage', 'DB_FETCH_FAILED')
     return { ...c, used: used.count ?? 0, reserved: (all.count ?? 0) - (used.count ?? 0) }
   }))
-  return jsonOk({ coupons }, { requestId })
+  return jsonOk({ coupons, otpReady: whatsappOtpReady() }, { requestId })
  })
 }
 export async function POST(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
   enforceSameOriginMutation(req)
   const role = await authorize(req)
   const input = parseSchema(couponWriteSchema, await parseJson<unknown>(req))
-  if (input.require_whatsapp_otp && input.is_active) throw new HttpError(400, 'Save this coupon disabled until WhatsApp verification is connected and tested.', 'COUPON_VERIFICATION_NOT_READY')
+  if (input.require_whatsapp_otp && input.is_active && !whatsappOtpReady()) throw new HttpError(400, 'Save this coupon disabled until WhatsApp verification is connected and tested.', 'COUPON_VERIFICATION_NOT_READY')
   const db = getSupabaseAdmin()
   const query = input.id ? db.from('coupons').update(input).eq('id',input.id) : db.from('coupons').insert(input)
   const { data, error } = await query.select('*').single()

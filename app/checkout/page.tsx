@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getCartSnapshot, clearCart, removeFromCart, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
 import { storeConfig } from '@/lib/config'
 import { moneyWithSymbol } from '@/lib/money'
@@ -27,6 +27,16 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 type CouponQuote = { code: string; subtotal: number; discount: number; shippingAmount: number; total: number; fingerprint: string }
+
+type OtpState = {challengeId:string;key:string;phoneHint:string;verified:boolean}
+
+function rememberedOtp(): OtpState | null {
+  if(typeof window==='undefined')return null
+  try {
+    const saved=JSON.parse(sessionStorage.getItem('coupon-otp') ?? 'null')
+    return saved && typeof saved.challengeId==='string' && /^[a-f0-9-]{36}$/.test(saved.challengeId) && typeof saved.key==='string' && typeof saved.phoneHint==='string' && typeof saved.verified==='boolean' ? saved : null
+  } catch { return null }
+}
 
 type Status = 'idle' | 'creating' | 'paying' | 'saving' | 'error'
 type PaymentMethod = 'razorpay' | 'cod'
@@ -69,6 +79,47 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('')
   const [checkingCoupon, setCheckingCoupon] = useState(false)
   const couponBusy = useRef(false)
+  const [otpRequiredFor, setOtpRequiredFor] = useState('')
+  const [otp, setOtp] = useState<OtpState|null>(rememberedOtp)
+  useEffect(()=>{try{if(otp)sessionStorage.setItem('coupon-otp',JSON.stringify(otp))}catch{/* Private browser storage may be unavailable. */}},[otp])
+  const [otpCode, setOtpCode] = useState('')
+  const [otpMessage, setOtpMessage] = useState('')
+  const [resendCountdown, setResendCountdown] = useState(0)
+  const identityKey = JSON.stringify([couponCode.trim().toUpperCase(), form.phone, form.email.trim().toLowerCase()])
+  const currentOtp = otp?.key === identityKey ? otp : null
+  const showOtp = otpRequiredFor === identityKey && !currentOtp?.verified
+  useEffect(()=>{
+    if(resendCountdown<=0)return
+    const timer=setTimeout(()=>setResendCountdown(value=>Math.max(0,value-1)),1000)
+    return ()=>clearTimeout(timer)
+  },[resendCountdown])
+  const couponPayload = () => ({ items: cart.map(i=>({variant_id:i.variant_id,quantity:i.quantity})),couponCode,address:form.address,customer:form })
+  async function requestCouponQuote(challengeId?:string) {
+    const response=await fetch('/api/checkout/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...couponPayload(),challengeId})})
+    const data=await response.json()
+    if(!response.ok){
+      if(data.code==='CHECKOUT_ALREADY_PAID'){setOtp(null);try{sessionStorage.removeItem('coupon-otp')}catch{/* Storage is optional. */}}
+      if(data.code==='COUPON_OTP_REQUIRED') {setOtpRequiredFor(identityKey);setOtp(current=>current?.key===identityKey?{...current,verified:false}:null)}
+      throw new Error(data.error || 'Could not apply coupon')
+    }
+    setCouponQuote({...data,fingerprint});setCouponCode(data.code);setOtpRequiredFor('');setCouponError('')
+    if(challengeId)setOtp(current=>current?.challengeId===challengeId?{...current,verified:true}:current)
+  }
+  async function handleOtp(action:'send'|'verify') {
+    if(couponBusy.current || checkoutBusy.current)return
+    couponBusy.current=true;setCheckingCoupon(true);setCouponError('');setOtpMessage('')
+    try {
+      const response=await fetch('/api/coupons/otp/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action==='send'?couponPayload():{challengeId:currentOtp?.challengeId,code:otpCode})})
+      const data=await response.json()
+      if(!response.ok)throw new Error(data.error || 'Could not complete verification')
+      if(action==='send'){
+        setOtp({challengeId:data.challengeId,key:identityKey,phoneHint:data.phoneHint,verified:false});setOtpCode('');setResendCountdown(data.resendAfter);setOtpMessage('Code requested on WhatsApp. It expires in five minutes.')
+      } else {
+        setOtp(current=>current?{...current,verified:true}:null);setOtpCode('');setOtpMessage('WhatsApp number verified.');await requestCouponQuote(data.challengeId)
+      }
+    }catch(e){setCouponError(e instanceof Error?e.message:'Verification failed')}
+    finally{couponBusy.current=false;setCheckingCoupon(false)}
+  }
   const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), form.address, form.phone, form.email])
   const activeCoupon = couponQuote?.fingerprint === fingerprint ? couponQuote : null
   const shippingQuote = activeCoupon ?? calculateShippingRate(total, undefined, { address: form.address })
@@ -77,10 +128,7 @@ export default function CheckoutPage() {
     couponBusy.current = true; setCheckingCoupon(true); setCouponError(''); setCouponQuote(null)
     try {
       if (!couponCode.trim()) throw new Error('Enter a coupon code')
-      const response = await fetch('/api/checkout/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map(i => ({ variant_id: i.variant_id, quantity: i.quantity })), couponCode, address: form.address, customer: { phone: form.phone, email: form.email } }) })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Could not apply coupon')
-      setCouponQuote({ ...data, fingerprint }); setCouponCode(data.code)
+      await requestCouponQuote(currentOtp?.challengeId)
     } catch (e) { setCouponError(e instanceof Error ? e.message : 'Could not apply coupon') }
     finally { couponBusy.current = false; setCheckingCoupon(false) }
   }
@@ -218,13 +266,17 @@ export default function CheckoutPage() {
             quantity: item.quantity,
           })),
           couponCode: activeCoupon?.code,
+          challengeId: activeCoupon && currentOtp?.verified ? currentOtp.challengeId : undefined,
           expectedAmount: Math.round(shippingQuote.total * 100),
           deliveryAddress: address,
           customer: { name, email, phone, address },
         }),
       })
       const orderData = await orderRes.json()
-      if (!orderRes.ok) throw new Error(orderData.error || 'Order creation failed')
+      if (!orderRes.ok) {
+        if(orderData.code==='COUPON_OTP_REQUIRED'){setCouponQuote(null);setOtpRequiredFor(identityKey);setOtp(current=>current?{...current,verified:false}:null)}
+        throw new Error(orderData.error || 'Order creation failed')
+      }
 
       const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
       if (!razorpayKey) {
@@ -411,9 +463,21 @@ export default function CheckoutPage() {
 
               <div className={styles.couponBox}>
                 <label htmlFor="coupon-code" className={styles.fieldLabel}>Have a coupon?</label>
-                <div className={styles.couponRow}><input id="coupon-code" className={styles.input} value={couponCode} maxLength={32} placeholder="Enter coupon code" autoCapitalize="characters" disabled={isLoading || checkingCoupon || !!pendingPayment} onChange={e=>{setCouponCode(e.target.value); setCouponQuote(null); setCouponError('')}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault(); void applyCoupon()}}} />
+                <div className={styles.couponRow}><input id="coupon-code" className={styles.input} value={couponCode} maxLength={32} placeholder="Enter coupon code" autoCapitalize="characters" disabled={isLoading || checkingCoupon || !!pendingPayment} onChange={e=>{setCouponCode(e.target.value); setCouponQuote(null); setCouponError(''); setOtpMessage('')}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault(); void applyCoupon()}}} />
                 <button type="button" className={styles.couponButton} disabled={isLoading || checkingCoupon || !!pendingPayment} onClick={applyCoupon}>{checkingCoupon ? 'Checking…' : 'Apply'}</button></div>
-                <div aria-live="polite">{activeCoupon && <p className={styles.couponSuccess}>{activeCoupon.code} applied — you save {moneyWithSymbol(activeCoupon.discount)}. <button type="button" disabled={isLoading || !!pendingPayment} onClick={()=>{setCouponQuote(null);setCouponCode('')}}>Remove</button></p>}
+                {showOtp && <div className={styles.otpBox}>
+                  <strong>Verify your WhatsApp number</strong>
+                  <p>Receive a verification code on {currentOtp?.phoneHint || form.phone}. No account or password needed.</p>
+                  <button type="button" className={styles.couponButton} disabled={isLoading || checkingCoupon || resendCountdown>0 || !!pendingPayment} onClick={()=>handleOtp('send')}>{resendCountdown>0 ? 'Resend in '+resendCountdown+'s' : currentOtp ? 'Resend code on WhatsApp' : 'Send code on WhatsApp'}</button>
+                  <p className={styles.summaryItemMeta}>By requesting a code, you agree to receive this verification message on WhatsApp.</p>
+                  {currentOtp && <div>
+                    <label htmlFor="coupon-otp" className={styles.fieldLabel}>Six-digit verification code</label>
+                    <div className={styles.couponRow}><input id="coupon-otp" className={styles.input} inputMode="numeric" autoComplete="one-time-code" value={otpCode} maxLength={6} disabled={checkingCoupon || isLoading} onChange={e=>setOtpCode(e.target.value.replace(/\D/g,''))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(otpCode.length===6)void handleOtp('verify')}}} />
+                    <button type="button" className={styles.couponButton} disabled={checkingCoupon || isLoading || otpCode.length!==6} onClick={()=>handleOtp('verify')}>Verify</button></div>
+                  </div>}
+                </div>}
+                <div aria-live="polite">{otpMessage && <p className={styles.couponSuccess}>{otpMessage}</p>}</div>
+                <div aria-live="polite">{activeCoupon && <p className={styles.couponSuccess}>{activeCoupon.code} applied — you save {moneyWithSymbol(activeCoupon.discount)}. <button type="button" disabled={isLoading || !!pendingPayment} onClick={()=>{setCouponQuote(null);setCouponCode('');setOtpRequiredFor('');setOtpMessage('')}}>Remove</button></p>}
                 {couponQuote && !activeCoupon && <p>Your cart or contact details changed. Apply your coupon again.</p>}
                 {couponError && <p className={styles.fieldError}>{couponError}</p>}</div>
                 <p className={styles.summaryItemMeta}>One coupon per online order. Free delivery eligibility uses the discounted product total.</p>

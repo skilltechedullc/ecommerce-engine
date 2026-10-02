@@ -2,6 +2,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { HttpError, assertArray, assertPositiveNumber, assertString } from '@/lib/server/api'
 import { aggregateCheckoutItems } from '@/lib/server/checkoutHardening'
 import { calculateShippingRate } from '@/lib/shipping/rates'
+import { loadCouponProof, type OtpContext } from './couponOtp'
+import { requireWhatsappOtpReady } from './whatsappOtp'
 import { couponIdentity, couponPhoneRules } from '@/lib/server/couponIdentity'
 import { couponDiscount, normalizeCouponCode, type Coupon } from '@/lib/coupons'
 type ParsedOrderItem = {
@@ -43,7 +45,7 @@ function parseItems(value: unknown): ParsedOrderItem[] {
 }
 
 
-export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address = '', contact?: unknown) {
+export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address = '', contact?: unknown, otp: OtpContext = {}) {
   const items = parseItems(rawItems)
   if (items.length > 100) throw new HttpError(400, 'Too many cart items', 'INVALID_CART')
   const supabaseAdmin = getSupabaseAdmin()
@@ -122,7 +124,7 @@ export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address
     if (error) throw new HttpError(503, 'Coupons are temporarily unavailable. Please try again.', 'COUPON_UNAVAILABLE')
     if (!data) throw new HttpError(400, 'Coupon code not found', 'INVALID_COUPON')
     coupon = data as Coupon
-    if (coupon.require_whatsapp_otp) throw new HttpError(400, 'This offer is unavailable while WhatsApp verification is being set up. You can continue without a coupon.', 'COUPON_VERIFICATION_UNAVAILABLE')
+    if (coupon.require_whatsapp_otp) requireWhatsappOtpReady()
     if (coupon.one_per_phone || coupon.one_per_email) {
       const identity = couponIdentity(contact)
       const rules = couponPhoneRules()
@@ -133,6 +135,10 @@ export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address
     const { count, error: countError } = await supabaseAdmin.from('checkout_sessions').select('id', { count: 'exact', head: true }).eq('coupon_id', coupon.id)
     if (countError) throw new HttpError(503, 'Unable to check coupon availability', 'COUPON_UNAVAILABLE')
     try { discount = couponDiscount(coupon, amount, count ?? 0) } catch (e) { throw new HttpError(400, (e as Error).message, 'INVALID_COUPON') }
+    if (coupon.require_whatsapp_otp && !otp.prepare) {
+      const proof=await loadCouponProof(otp,coupon.id,contact)
+      if(!proof || proof.checkout_id)throw new HttpError(428,'Verify your WhatsApp number to use this coupon.','COUPON_OTP_REQUIRED')
+    }
   }
   const shipping = calculateShippingRate(Math.round((amount - discount) * 100) / 100, undefined, { address })
   return { items: canonicalItems, coupon, subtotal: Math.round(amount * 100) / 100, discount, shippingAmount: shipping.shippingAmount, total: shipping.total }

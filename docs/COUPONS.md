@@ -25,7 +25,7 @@ Migration: `supabase/migrations/202610020001_coupons.sql`. Apply it before deplo
 - Local browser: admin create/edit/disable, unauthorized/cross-origin rejection, invalid coupon message, apply/remove, address-change invalidation, desktop/mobile layouts and no browser errors passed.
 - Millco Razorpay test API verified a ₹499 product less ₹49.90 discount plus ₹50 delivery creates a ₹499.10 payment order. No payment submitted; one pending test checkout retained. Live deployment verification follows release.
 
-## WhatsApp verification — step 1, 2 October 2026
+## WhatsApp verification — step 1 history, 2 October 2026
 
 Admin → Coupons now has Require WhatsApp OTP, One use per phone and Block reuse of email controls. New coupons default to all three controls checked and Disabled. Existing unrestricted offers retain their prior flags. MILLCO10 is explicitly disabled with all three protections selected.
 
@@ -35,4 +35,13 @@ Phone numbers are compared using the server tenant country code, national length
 
 Migration: 202610020002_coupon_contact_rules.sql. Checks: 82 unit/regression tests, three isolated database integrations (including simultaneous phone reuse, email reuse, number formatting, historical sessions, forged OTP and payment recovery), admin browser save/activation checks, lint, TypeScript and production build.
 
-Remaining steps: implement expiring OTP challenges and WhatsApp authentication-template sender; rate-limit sends/resends/verification attempts; bind verified phone proof to checkout and safely resume pending payments; add checkout code-entry UI; connect Meta credentials/template and test actual delivery before activating a protected offer. No OTP messages or messaging charges are initiated by step 1.
+Step 1 left the code-entry and delivery implementation for step 2. See the current state below.
+
+
+## WhatsApp verification — step 2, 2 October 2026
+
+OTP entry, explicit code request, resend cooldown, verification, browser/contact binding, secure server-side challenges and same-checkout payment retry are implemented. Sender configuration defaults to disabled. MILLCO10 remains disabled with its three protections selected. No real Meta delivery has been attempted or verified.
+
+See [COUPON_WHATSAPP_OTP.md](COUPON_WHATSAPP_OTP.md) for the exact credentials/template requirements, activation procedure, sending caps and recovery limitations. Migration: 202610020003_coupon_otp.sql. No plaintext codes are stored or returned. The final order preserves its pre-payment contact snapshot. Ordinary checkout remains available without OTP or a coupon.
+
+Validation: 85 unit/regression checks, five local integration tests across OTP, rate caps, contact rules, atomic coupon use and payment recovery; local browser flow with simulated delivery and actual verification routes; lint, TypeScript and Millco production build. Real WhatsApp receipt and provider approval still require the account setup and controlled test.

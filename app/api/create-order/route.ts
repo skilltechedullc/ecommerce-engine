@@ -1,3 +1,6 @@
+import { OTP_COOKIE } from '@/lib/server/couponOtpCrypto'
+import { browserDigest } from '@/lib/server/couponOtp'
+import { reservedCouponCheckout } from '@/lib/server/couponCheckoutResume'
 import { checkoutCustomerSchema } from '@/lib/server/checkoutCustomer'
 import Razorpay from 'razorpay'
 import { NextRequest } from 'next/server'
@@ -23,6 +26,7 @@ type CreateOrderBody = {
   }>
   customer?: unknown
   deliveryAddress?: string
+  challengeId?: string
   couponCode?: string
   expectedAmount?: number
 }
@@ -40,8 +44,16 @@ export async function POST(req: NextRequest) {
     if (!parsedCustomer.success) throw new HttpError(400, 'Valid customer contact and delivery details are required', 'INVALID_CUSTOMER')
     const customer = parsedCustomer.data
 
+    const otp={challengeId:body.challengeId,browserHash:browserDigest(req.cookies.get(OTP_COOKIE)?.value)}
+    const reserved=await reservedCouponCheckout(otp,body.couponCode,body.items,customer)
+    if(reserved){
+      if(body.expectedAmount!==undefined && body.expectedAmount!==Number(reserved.amount_paise))throw new HttpError(409,'Apply the coupon again to restore the original payment total.','TOTAL_CHANGED')
+      const previous=await razorpay.orders.fetch(reserved.razorpay_order_id)
+      if(previous.status==='paid')throw new HttpError(409,'Payment has already been received. Do not pay again; check your confirmation or contact the store.','CHECKOUT_ALREADY_PAID')
+      return jsonOk({order_id:reserved.razorpay_order_id,amount:reserved.amount_paise,subtotal:reserved.subtotal_amount,shipping_amount:reserved.shipping_amount,discount_amount:reserved.discount_amount,coupon_code:reserved.coupon_code,checkout_session_id:reserved.id,resumed:true},{requestId})
+    }
     const supabaseAdmin = getSupabaseAdmin()
-    const quote = await checkoutQuote(body.items, body.couponCode, customer.address, customer)
+    const quote = await checkoutQuote(body.items, body.couponCode, customer.address, customer, otp)
     if (body.expectedAmount !== undefined && body.expectedAmount !== amountToPaise(quote.total)) throw new HttpError(409, 'Your total changed. Reapply the coupon or refresh your cart before paying.', 'TOTAL_CHANGED')
     const amountPaise = amountToPaise(quote.total)
     const checkoutSessionId = crypto.randomUUID()
@@ -69,6 +81,8 @@ export async function POST(req: NextRequest) {
         discount_amount: quote.discount,
         customer,
         phone_rules: couponPhoneRules(),
+        otp_challenge_id: otp.challengeId ?? null,
+        otp_browser_hash: otp.browserHash ?? null,
         status: 'created',
       } })
 
@@ -87,4 +101,3 @@ export async function POST(req: NextRequest) {
     }, { requestId })
   })
 }
-

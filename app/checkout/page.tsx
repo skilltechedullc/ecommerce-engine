@@ -69,7 +69,7 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('')
   const [checkingCoupon, setCheckingCoupon] = useState(false)
   const couponBusy = useRef(false)
-  const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), form.address])
+  const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), form.address, form.phone, form.email])
   const activeCoupon = couponQuote?.fingerprint === fingerprint ? couponQuote : null
   const shippingQuote = activeCoupon ?? calculateShippingRate(total, undefined, { address: form.address })
   async function applyCoupon() {
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
     couponBusy.current = true; setCheckingCoupon(true); setCouponError(''); setCouponQuote(null)
     try {
       if (!couponCode.trim()) throw new Error('Enter a coupon code')
-      const response = await fetch('/api/checkout/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map(i => ({ variant_id: i.variant_id, quantity: i.quantity })), couponCode, address: form.address }) })
+      const response = await fetch('/api/checkout/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map(i => ({ variant_id: i.variant_id, quantity: i.quantity })), couponCode, address: form.address, customer: { phone: form.phone, email: form.email } }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not apply coupon')
       setCouponQuote({ ...data, fingerprint }); setCouponCode(data.code)
@@ -414,7 +414,7 @@ export default function CheckoutPage() {
                 <div className={styles.couponRow}><input id="coupon-code" className={styles.input} value={couponCode} maxLength={32} placeholder="Enter coupon code" autoCapitalize="characters" disabled={isLoading || checkingCoupon || !!pendingPayment} onChange={e=>{setCouponCode(e.target.value); setCouponQuote(null); setCouponError('')}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault(); void applyCoupon()}}} />
                 <button type="button" className={styles.couponButton} disabled={isLoading || checkingCoupon || !!pendingPayment} onClick={applyCoupon}>{checkingCoupon ? 'Checking…' : 'Apply'}</button></div>
                 <div aria-live="polite">{activeCoupon && <p className={styles.couponSuccess}>{activeCoupon.code} applied — you save {moneyWithSymbol(activeCoupon.discount)}. <button type="button" disabled={isLoading || !!pendingPayment} onClick={()=>{setCouponQuote(null);setCouponCode('')}}>Remove</button></p>}
-                {couponQuote && !activeCoupon && <p>Cart or address changed. Apply your coupon again.</p>}
+                {couponQuote && !activeCoupon && <p>Your cart or contact details changed. Apply your coupon again.</p>}
                 {couponError && <p className={styles.fieldError}>{couponError}</p>}</div>
                 <p className={styles.summaryItemMeta}>One coupon per online order. Free delivery eligibility uses the discounted product total.</p>
               </div>

@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { HttpError, assertArray, assertPositiveNumber, assertString } from '@/lib/server/api'
 import { aggregateCheckoutItems } from '@/lib/server/checkoutHardening'
 import { calculateShippingRate } from '@/lib/shipping/rates'
+import { couponIdentity, couponPhoneRules } from '@/lib/server/couponIdentity'
 import { couponDiscount, normalizeCouponCode, type Coupon } from '@/lib/coupons'
 type ParsedOrderItem = {
   variant_id: string
@@ -42,7 +43,7 @@ function parseItems(value: unknown): ParsedOrderItem[] {
 }
 
 
-export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address = '') {
+export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address = '', contact?: unknown) {
   const items = parseItems(rawItems)
   if (items.length > 100) throw new HttpError(400, 'Too many cart items', 'INVALID_CART')
   const supabaseAdmin = getSupabaseAdmin()
@@ -121,6 +122,14 @@ export async function checkoutQuote(rawItems: unknown, rawCode: unknown, address
     if (error) throw new HttpError(503, 'Coupons are temporarily unavailable. Please try again.', 'COUPON_UNAVAILABLE')
     if (!data) throw new HttpError(400, 'Coupon code not found', 'INVALID_COUPON')
     coupon = data as Coupon
+    if (coupon.require_whatsapp_otp) throw new HttpError(400, 'This offer is unavailable while WhatsApp verification is being set up. You can continue without a coupon.', 'COUPON_VERIFICATION_UNAVAILABLE')
+    if (coupon.one_per_phone || coupon.one_per_email) {
+      const identity = couponIdentity(contact)
+      const rules = couponPhoneRules()
+      const check = await supabaseAdmin.rpc('coupon_contact_available', { p_coupon_id: coupon.id, p_phone: identity.phone, p_email: identity.email, p_country: rules.country_code, p_length: rules.national_length, p_trunk: rules.trunk_prefix })
+      if (check.error) throw new HttpError(503, 'Unable to check coupon eligibility. Please try again.', 'COUPON_UNAVAILABLE')
+      if (!check.data) throw new HttpError(400, 'This coupon has already been used or reserved with these contact details.', 'COUPON_ALREADY_USED')
+    }
     const { count, error: countError } = await supabaseAdmin.from('checkout_sessions').select('id', { count: 'exact', head: true }).eq('coupon_id', coupon.id)
     if (countError) throw new HttpError(503, 'Unable to check coupon availability', 'COUPON_UNAVAILABLE')
     try { discount = couponDiscount(coupon, amount, count ?? 0) } catch (e) { throw new HttpError(400, (e as Error).message, 'INVALID_COUPON') }

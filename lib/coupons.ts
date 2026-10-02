@@ -11,11 +11,14 @@ export const couponWriteSchema = z.object({
   expires_at: z.string().datetime().nullable(),
   usage_limit: z.number().int().positive().max(1000000).nullable(),
   is_active: z.boolean(),
+  require_whatsapp_otp: z.boolean().default(false),
+  one_per_phone: z.boolean().default(false),
+  one_per_email: z.boolean().default(false),
 }).superRefine((c, ctx) => {
   if (c.discount_type === 'percentage' && c.discount_value >= 100) ctx.addIssue({ code: 'custom', path: ['discount_value'], message: 'Percentage must be below 100' })
   if (c.starts_at && c.expires_at && c.starts_at >= c.expires_at) ctx.addIssue({ code: 'custom', path: ['expires_at'], message: 'End date must be after start date' })
 })
-export type Coupon = z.infer<typeof couponWriteSchema> & { id: string; used?: number; reserved?: number }
+export type Coupon = Omit<z.infer<typeof couponWriteSchema>, 'require_whatsapp_otp' | 'one_per_phone' | 'one_per_email'> & { require_whatsapp_otp?: boolean; one_per_phone?: boolean; one_per_email?: boolean } & { id: string; used?: number; reserved?: number }
 export function normalizeCouponCode(value: unknown): string {
   if (value == null || value === '') return ''
   if (typeof value !== 'string' || !/^[A-Z0-9_-]{3,32}$/.test(value.trim().toUpperCase())) throw new Error('Enter a valid coupon code')

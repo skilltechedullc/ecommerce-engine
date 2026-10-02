@@ -8,6 +8,7 @@ import { HttpError, jsonOk, parseJson, withApiHandler } from '@/lib/server/api'
 import { amountToPaise } from '@/lib/server/checkoutHardening'
 import { env } from '@/lib/server/env'
 import { enforceRateLimit } from '@/lib/server/rateLimit'
+import { couponPhoneRules } from '@/lib/server/couponIdentity'
 import { checkoutQuote } from '@/lib/server/checkoutQuote'
 
 const razorpay = new Razorpay({
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     const customer = parsedCustomer.data
 
     const supabaseAdmin = getSupabaseAdmin()
-    const quote = await checkoutQuote(body.items, body.couponCode, customer.address)
+    const quote = await checkoutQuote(body.items, body.couponCode, customer.address, customer)
     if (body.expectedAmount !== undefined && body.expectedAmount !== amountToPaise(quote.total)) throw new HttpError(409, 'Your total changed. Reapply the coupon or refresh your cart before paying.', 'TOTAL_CHANGED')
     const amountPaise = amountToPaise(quote.total)
     const checkoutSessionId = crypto.randomUUID()
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
         coupon_code: quote.coupon?.code ?? null,
         discount_amount: quote.discount,
         customer,
+        phone_rules: couponPhoneRules(),
         status: 'created',
       } })
 

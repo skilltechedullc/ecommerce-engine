@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
   enforceSameOriginMutation(req)
   const role = await authorize(req)
   const input = parseSchema(couponWriteSchema, await parseJson<unknown>(req))
+  if (input.require_whatsapp_otp && input.is_active) throw new HttpError(400, 'Save this coupon disabled until WhatsApp verification is connected and tested.', 'COUPON_VERIFICATION_NOT_READY')
   const db = getSupabaseAdmin()
   const query = input.id ? db.from('coupons').update(input).eq('id',input.id) : db.from('coupons').insert(input)
   const { data, error } = await query.select('*').single()

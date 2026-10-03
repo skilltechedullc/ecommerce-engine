@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { getCartSnapshot, removeFromCart, updateQuantity, subscribeToCart, emitCartUpdated, CartItem } from '@/lib/cart'
+import { calculateShippingRate } from '@/lib/shipping/rates'
 import { formatMoney } from '@/lib/money'
 import { tenantConfig } from '@/lib/tenant.config'
 import styles from './MiniCartDrawer.module.css'
@@ -23,13 +24,14 @@ function getServerSnapshot(): CartItem[] {
 }
 
 const NAV_CLOSE_DELAY_MS = 180
-const FREE_SHIPPING_THRESHOLD = 999
+const FREE_SHIPPING_THRESHOLD = tenantConfig.shipping.rateRules.freeShippingThreshold
 const SWIPE_CLOSE_THRESHOLD_PX = 82
 const SWIPE_DRAG_CAP_PX = 140
 
 export default function MiniCartDrawer() {
   const router = useRouter()
   const pathname = usePathname()
+  const previousPath = useRef(pathname)
   const cart = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerSnapshot)
   const [open, setOpen] = useState(false)
   const [addedNoticeVisible, setAddedNoticeVisible] = useState(false)
@@ -53,9 +55,10 @@ export default function MiniCartDrawer() {
   )
 
   const shippingRemaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal)
-  const shippingProgress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100))
+  const shippingProgress = FREE_SHIPPING_THRESHOLD > 0 ? Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)) : 0
+  const shippingQuote = calculateShippingRate(subtotal)
   const shippingUnlocked = shippingRemaining <= 0
-  const checkoutLabel = itemCount > 0 ? `Checkout Securely · ${formatMoney(subtotal)}` : 'Checkout Securely'
+  const checkoutLabel = itemCount > 0 ? `Checkout Securely · ${formatMoney(shippingQuote.total)}` : 'Checkout Securely'
 
   useEffect(() => {
     function handleOpen() {
@@ -82,6 +85,8 @@ export default function MiniCartDrawer() {
   }, [])
 
   useEffect(() => {
+    if (previousPath.current === pathname) return
+    previousPath.current = pathname
     const timer = window.setTimeout(() => {
       setDragOffset(0)
       setIsDragging(false)
@@ -328,7 +333,7 @@ export default function MiniCartDrawer() {
 
         {cart.length > 0 ? (
           <footer className={styles.footer}>
-            <div className={styles.shippingProgressCard}>
+            {FREE_SHIPPING_THRESHOLD > 0 && <div className={styles.shippingProgressCard}>
               <div className={styles.shippingProgressHeader}>
                 <span>Free shipping progress</span>
                 <strong>{shippingUnlocked ? 'Unlocked' : `${formatMoney(shippingRemaining)} away`}</strong>
@@ -343,13 +348,13 @@ export default function MiniCartDrawer() {
               </p>
             </div>
 
+            }
             <div className={styles.summaryRow}>
               <span>Subtotal</span>
               <strong>{formatMoney(subtotal)}</strong>
             </div>
-            <p className={styles.shippingNote}>
-              {tenantConfig.marketing.miniCart.shippingNote}
-            </p>
+            <div className={styles.summaryRow}><span>Shipping</span><strong>{shippingQuote.shippingAmount ? formatMoney(shippingQuote.shippingAmount) : 'Free'}</strong></div>
+            <p className={styles.shippingNote}>Final delivery charges are confirmed at checkout.</p>
 
             <div className={styles.trustRow}>
               {tenantConfig.marketing.miniCart.trustBadges.map((badge) => (

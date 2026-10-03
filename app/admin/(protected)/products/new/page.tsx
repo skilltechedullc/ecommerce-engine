@@ -22,11 +22,6 @@ export default async function NewProductPage() {
         ← Back to Products
       </Link>
 
-      <section className="admin-surface">
-        <p className="admin-sectionEyebrow">Catalog</p>
-        <h2 className="admin-sectionTitle">Create Product</h2>
-        <p className="admin-sectionText">Build out core product information, upload imagery, and define purchasable variants.</p>
-      </section>
 
       <ProductForm
         mode="create"

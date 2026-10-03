@@ -659,3 +659,18 @@
     justify-content: center;
   }
 }
+
+/* Compact purchase flow */
+.cartHeading { margin-bottom: 24px; }
+.cartHeading h1 { font-family: Georgia, serif; font-size: clamp(28px, 4vw, 40px); color: #173f30; margin: 0 0 8px; }
+.cartHeading p { color: #52685c; margin: 0; }
+@media(max-width:720px) {
+ .page { padding: 24px 16px calc(100px + env(safe-area-inset-bottom)); }
+ .itemRow { grid-template-columns: 80px minmax(0,1fr); gap: 14px; }
+ .imageWrap { width: 80px; height: 96px; aspect-ratio: auto; }
+ .priceCol { grid-column: 2; }
+ .mobileStickyCheckout { bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
+
+@media(min-width:721px) { .page { padding-top:32px; padding-bottom:64px; } }
+@media(max-width:720px) { .upsellGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } .upsellBody { padding:12px; } .upsellBody h3 { font-size:15px; } }

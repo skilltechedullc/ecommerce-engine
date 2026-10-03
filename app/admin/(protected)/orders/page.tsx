@@ -1,3 +1,4 @@
+import { filterAdminOrders, STORE_TIME_ZONE, STORE_TIME_LABEL } from '@/lib/adminOrders'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
@@ -31,20 +32,15 @@ export default async function OrdersPage({
 
   const query = (q ?? "").trim().slice(0, 200)
   const safeOrders = orders ?? []
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const filteredOrders = safeOrders.filter((order) => {
-    const matchesScope = scope !== 'today' || order.created_at?.startsWith(todayStr)
-    const matchesStatus = !status || order.status === status
-    const matchesQuery = !query || [order.id, order.customer_name, order.customer_email, order.razorpay_payment_id].some(value => value?.toLowerCase().includes(query.toLowerCase()))
-    return matchesScope && matchesStatus && matchesQuery
-  })
-  const pendingCount = filteredOrders.filter((order) => order.status === 'Pending').length
+  const filteredOrders = filterAdminOrders(safeOrders, {scope,status,q:query})
+  const pendingCount = filteredOrders.filter(order => ['Paid','Processing'].includes(order.status ?? '')).length
   const deliveredCount = filteredOrders.filter((order) => order.status === 'Delivered').length
   const revenue = filteredOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
-  const hasFilter = scope === 'today' || Boolean(status) || Boolean(query) || Boolean(query)
-  const heading = scope === 'today' ? 'Today’s orders (UTC)' : 'Orders'
+  const paidValue = filteredOrders.filter(order => order.razorpay_payment_id && ['Paid','Processing','Shipped','Delivered'].includes(order.status ?? '')).reduce((sum, order)=>sum+Number(order.total_amount??0),0)
+  const hasFilter = scope === 'today' || Boolean(status) || Boolean(query)
+  const heading = scope === 'today' ? `Today’s orders (${STORE_TIME_LABEL})` : 'Orders'
   const description = scope === 'today'
-    ? 'Orders placed since midnight UTC, ready for review.'
+    ? `Orders placed since midnight ${STORE_TIME_LABEL}, ready for review.`
     : 'Every order across the store, with payment and fulfillment visibility.'
 
   return (
@@ -60,12 +56,12 @@ export default async function OrdersPage({
             Clear filter
           </Link>
         ) : null}
-        <a href="/api/admin/exports/orders" className="admin-button admin-button--secondary admin-button--small">
+        <a href={`/api/admin/exports/orders?${new URLSearchParams({scope:scope??'',status:status??'',q:query})}`} className="admin-button admin-button--secondary admin-button--small">
           Export CSV
         </a>
       </section>
 
-      <section className="admin-surface"><form action="/admin/orders" className="admin-orderFilters"><label>Find an order<input name="q" defaultValue={query} placeholder="Customer, email, order or payment ID" maxLength={200} /></label><label>Status<select name="status" defaultValue={status ?? ''}><option value="">All statuses</option>{['Pending','Paid','Processing','Shipped','Delivered','Cancelled','Refunded','Return Requested','Returned','Payment Failed'].map(value=><option key={value} value={value}>{value}</option>)}</select></label><label>Period<select name="scope" defaultValue={scope ?? ''}><option value="">All dates</option><option value="today">Today (UTC)</option></select></label><button className="admin-button admin-button--primary">Apply filters</button></form><p className="admin-sectionText">Order value includes all matching orders, including cancelled or unpaid orders. It is not settled revenue. CSV export includes all orders.</p></section>
+      <section className="admin-surface"><form action="/admin/orders" className="admin-orderFilters"><label>Find an order<input name="q" defaultValue={query} placeholder="Customer, email, order or payment ID" maxLength={200} /></label><label>Status<select name="status" defaultValue={status ?? ''}><option value="">All statuses</option><option value="awaiting_dispatch">Awaiting dispatch</option>{['Pending','Paid','Processing','Shipped','Delivered','Cancelled','Refunded','Return Requested','Returned','Payment Failed'].map(value=><option key={value} value={value}>{value}</option>)}</select></label><label>Period<select name="scope" defaultValue={scope ?? ''}><option value="">All dates</option><option value="today">Today ({STORE_TIME_LABEL})</option></select></label><button className="admin-button admin-button--primary">Apply filters</button></form><p className="admin-sectionText">Order value includes all matching orders, including cancelled or unpaid orders. It is not settled revenue. CSV export follows these filters.</p></section>
 
       {recoveryError ? <p role="alert">Payment recovery checks are temporarily unavailable. Review captured payments in your payment dashboard.</p> : recovery?.length ? (
         <section className="admin-surface" role="status">
@@ -81,15 +77,16 @@ export default async function OrdersPage({
           <p className="admin-metricCard__hint">Live order volume for the current view.</p>
         </section>
         <section className="admin-surface admin-metricCard">
-          <p className="admin-metricCard__label">Pending</p>
+          <p className="admin-metricCard__label">Awaiting dispatch</p>
           <p className="admin-metricCard__value">{pendingCount}</p>
-          <p className="admin-metricCard__hint">Orders waiting on action or payment confirmation.</p>
+          <p className="admin-metricCard__hint">Paid and processing orders to prepare for dispatch.</p>
         </section>
         <section className="admin-surface admin-metricCard">
           <p className="admin-metricCard__label">Order value</p>
           <p className="admin-metricCard__value">{moneyWithSymbol(revenue)}</p>
           <p className="admin-metricCard__hint">Delivered: {deliveredCount} orders</p>
         </section>
+        <section className="admin-surface admin-metricCard"><p className="admin-metricCard__label">Paid online order value</p><p className="admin-metricCard__value">{moneyWithSymbol(paidValue)}</p><p className="admin-metricCard__hint">Payment recorded; excludes cancelled/refunded orders. Not bank settlements.</p></section>
       </div>
 
       <section className="admin-surface admin-tableCard">
@@ -100,7 +97,7 @@ export default async function OrdersPage({
             <p>New checkouts will appear here with clear payment and fulfillment status badges.</p>
           </div>
         ) : (
-          <div className="admin-tableWrap">
+          <div className="admin-tableWrap admin-ordersTable">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -117,17 +114,17 @@ export default async function OrdersPage({
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td><span className="admin-orderCode">#{order.id.slice(0, 8).toUpperCase()}</span></td>
-                    <td>
+                    <td data-label="Order"><span className="admin-orderCode">#{order.id.slice(0, 8).toUpperCase()}</span></td>
+                    <td data-label="Customer">
                       <p className="admin-tableProduct__name">{order.customer_name || '—'}</p>
                       {order.customer_email && <p className="admin-tableProduct__meta">{order.customer_email}</p>}
                     </td>
-                    <td style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
-                    <td><StatusBadge status={order.status ?? 'Pending'} /></td>
-                    <td><span className="admin-badge admin-badge--info">{formatPaymentMethod(order.payment_method)}</span></td>
-                    <td><span className="admin-orderCode">{order.razorpay_payment_id ? `${order.razorpay_payment_id.slice(0, 16)}…` : '—'}</span></td>
-                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td>
+                    <td data-label="Amount" style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
+                    <td data-label="Status"><StatusBadge status={order.status ?? 'Pending'} /></td>
+                    <td className="admin-orderSecondary" data-label="Payment"><span className="admin-badge admin-badge--info">{formatPaymentMethod(order.payment_method)}</span></td>
+                    <td className="admin-orderSecondary" data-label="Payment ID"><span className="admin-orderCode">{order.razorpay_payment_id ? `${order.razorpay_payment_id.slice(0, 16)}…` : '—'}</span></td>
+                    <td data-label="Placed">{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { timeZone: STORE_TIME_ZONE, day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td data-label="Details">
                       <Link href={`/admin/orders/${order.id}`} className="admin-button admin-button--secondary admin-button--small">
                         View
                       </Link>

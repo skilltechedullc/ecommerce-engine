@@ -60,7 +60,7 @@ export default function AiChatWidget() {
   const panelRef = useRef<HTMLElement | null>(null)
 
   const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout'
-  const isLifted = isCartOrCheckout
+  const isLifted = isCartOrCheckout || pathname.startsWith('/products/')
   const showQuickReplies = messages.length === 1 && messages[0]?.role === 'assistant'
 
   useEffect(() => {
@@ -281,7 +281,7 @@ export default function AiChatWidget() {
           <button
             type="button"
             className={styles.fab}
-            aria-label="Open AI chat assistant"
+            aria-label="Open customer support"
             onClick={() => setIsOpen(true)}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.fabIcon}>
@@ -290,7 +290,7 @@ export default function AiChatWidget() {
                 fill="currentColor"
               />
             </svg>
-            <span className={styles.fabLabel}>AI Chat</span>
+            <span className={styles.fabLabel}>Need help?</span>
           </button>
         ) : (
           <section ref={panelRef} className={styles.panel} aria-label="AI chat panel">
@@ -301,7 +301,7 @@ export default function AiChatWidget() {
                   <h2 className={styles.title}>{brandShort} Assistant</h2>
                   <p className={styles.subtitle}>
                     <span className={styles.onlineDot} />
-                    Online · Ready to help
+                    AI assistant · Product and order help
                   </p>
                 </div>
               </div>
@@ -320,6 +320,7 @@ export default function AiChatWidget() {
               </button>
             </header>
 
+            {whatsappUrl && <a className={styles.whatsappHelp} href={whatsappUrl} target="_blank" rel="noopener noreferrer">Prefer a person? Chat on WhatsApp ↗</a>}
             <div className={styles.messages}>
               {messages.map((message) => (
                 <div

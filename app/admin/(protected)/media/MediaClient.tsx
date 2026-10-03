@@ -47,7 +47,7 @@ export default function MediaClient({ assets }: { assets: MediaAsset[] }) {
         <div>
           <p className="admin-sectionEyebrow">Media</p>
           <h2 className="admin-sectionTitle">Product image library</h2>
-          <p className="admin-sectionText">Upload product photos here, then copy an image link into a product. Uploading alone does not change the storefront.</p>
+          <p className="admin-sectionText">Upload photos here, then choose them from the image library when editing a product. Uploading alone does not change the storefront.</p>
         </div>
         <label className={`admin-button admin-button--primary${uploading ? ' is-disabled' : ''}`}>
           {uploading ? 'Uploading...' : 'Upload Image'}

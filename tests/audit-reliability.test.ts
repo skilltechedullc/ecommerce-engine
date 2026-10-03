@@ -79,8 +79,8 @@ test('admin first-run product guidance is present', () => {
 
   assert.match(productsClient, /No products yet/)
   assert.match(productsClient, /Add First Product/)
-  assert.match(productForm, /First Product Checklist/)
-  assert.match(productForm, /Ready-to-sell basics/)
+  assert.match(productForm, /Add a name, photo, size, price and stock/)
+
 })
 
 test('server uses structured logger for high-value failures', () => {

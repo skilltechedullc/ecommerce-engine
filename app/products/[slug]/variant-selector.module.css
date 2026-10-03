@@ -329,7 +329,7 @@
     position: fixed;
     left: 14px;
     right: 14px;
-    bottom: 82px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
     z-index: 220;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid rgba(15, 73, 53, 0.14);
@@ -389,3 +389,5 @@
     box-shadow: none;
   }
 }
+
+@media(max-width:900px) { .stickySpacer { height:16px; } }

@@ -135,6 +135,7 @@ export function addToCart(item: CartItem) {
 
   if (existing) {
     existing.quantity += incomingQuantity
+    if (item.image) existing.image = item.image
   } else {
     cart.push({ ...item, quantity: incomingQuantity })
   }

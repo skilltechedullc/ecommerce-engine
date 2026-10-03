@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { addToCart, emitCartUpdated } from '@/lib/cart'
 import { firstImageFromSources } from '@/lib/catalogMedia'
+import { tenantConfig } from '@/lib/tenant.config'
 import { moneyWithSymbol } from '@/lib/money'
 import styles from './variant-selector.module.css'
 
@@ -22,6 +23,7 @@ type Variant = {
 type Props = {
   productId: string
   productName: string
+  productImage?: string
   variants: Variant[]
   selectedId?: string
   onSelectVariant?: (variantId: string) => void
@@ -30,6 +32,7 @@ type Props = {
 export default function VariantSelector({
   productId,
   productName,
+  productImage,
   variants,
   selectedId,
   onSelectVariant,
@@ -75,7 +78,7 @@ export default function VariantSelector({
       name: productName,
       price,
       quantity,
-      image: firstImageFromSources(selected.images, selected.image) ?? undefined,
+      image: firstImageFromSources(selected.images, selected.image, productImage) ?? undefined,
     })
     emitCartUpdated()
     window.dispatchEvent(new Event('cart-open'))
@@ -93,13 +96,12 @@ export default function VariantSelector({
       </div>
 
       <div className={styles.deliveryNotes}>
-        <span>Delivery estimate is confirmed at checkout.</span>
-        <span>Free-shipping eligibility is calculated in your cart.</span>
+        <span>{tenantConfig.marketing.cart.shippingLabel}. {tenantConfig.region.shippingCoverageLabel}.</span>
       </div>
 
       {variants.length > 0 ? (
         <div className={styles.variantBlock}>
-          <p className={styles.variantLabel}>Choose Variant</p>
+          <p className={styles.variantLabel}>Choose size</p>
           <div className={styles.variantGrid}>
             {variants.map((variant) => {
               const label = variant.name ?? variant.weight ?? 'Variant'
@@ -178,11 +180,6 @@ export default function VariantSelector({
         ) : !selected ? 'Select Variant' : !inStock ? 'Out of Stock' : `Add ${quantity} to Cart`}
       </button>
 
-      <div className={styles.trustStrip}>
-        <span>Clear pricing</span>
-        <span>Secure checkout</span>
-        <span>Order confirmation</span>
-      </div>
 
       <div className={styles.stickySpacer} aria-hidden="true" />
       <div className={styles.stickyBar}>

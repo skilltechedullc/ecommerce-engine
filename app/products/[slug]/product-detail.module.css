@@ -509,3 +509,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Keep product information concise and aligned with the storefront. */
+.summaryCard h1 { font-family: Georgia, serif; font-weight: 500; }
+.mainWrap { padding-top: 32px; padding-bottom: 32px; align-items: start; }
+.relatedWrap { padding-top: 24px; padding-bottom: 24px; }
+.summaryCard { padding: 24px; }
+@media(max-width:720px) { .mainWrap { gap: 20px; padding-top: 20px; } .summaryCard { padding: 20px; } .brandRow { display: none; } }
+
+.relatedWrap { margin-top:0; }
+
+.pageBody { padding-top:16px; padding-bottom:32px; }
+.relatedSection { margin-top:8px; }
+.categorySection { margin-top:16px; }
+
+.relatedSection { background:transparent; border:0; box-shadow:none; padding:0; }
+@media(max-width:720px) { .relatedWrap { padding-left:16px; padding-right:16px; } .relatedSection { padding:0; } }

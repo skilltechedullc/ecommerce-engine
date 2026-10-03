@@ -1,3 +1,4 @@
+import { STORE_TIME_ZONE } from '@/lib/adminOrders'
 import { hasPermission } from '@/lib/server/permissions'
 import ManualTrackingEditor from './ManualTrackingEditor'
 import { requireAdminPermission, getAdminRole } from '@/lib/adminAuth'
@@ -139,7 +140,7 @@ export default async function OrderDetailPage({
             label="Date"
             value={
               order.created_at
-                ? new Date(order.created_at).toLocaleString(tenantConfig.region.numberLocale, {
+                ? new Date(order.created_at).toLocaleString(tenantConfig.region.numberLocale, { timeZone: STORE_TIME_ZONE,
                     day: '2-digit', month: 'short', year: 'numeric',
                     hour: '2-digit', minute: '2-digit',
                   })
@@ -251,7 +252,7 @@ export default async function OrderDetailPage({
                     ) : null}
                     {log.next_retry_at ? (
                       <p className="admin-tableProduct__meta" style={{ marginTop: '4px' }}>
-                        Retry at {new Date(log.next_retry_at).toLocaleString(tenantConfig.region.numberLocale)}
+                        Retry at {new Date(log.next_retry_at).toLocaleString(tenantConfig.region.numberLocale, { timeZone: STORE_TIME_ZONE })}
                       </p>
                     ) : null}
                   </td>

@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import { tenantConfig } from '@/lib/tenant.config'
 import VariantSelector from './VariantSelector'
 import styles from './product-detail.module.css'
 
@@ -137,32 +136,17 @@ export default function ProductDetailExperience({
 
           {productDescription && <p className={styles.description}>{productDescription}</p>}
 
-          <div className={styles.benefitList}>
-            {tenantConfig.marketing.productDetail.benefits.map((benefit) => (
-              <span key={benefit}>{benefit}</span>
-            ))}
-          </div>
 
           <VariantSelector
             productId={productId}
             productName={productName}
+            productImage={productGallery[0]}
             variants={variants}
             selectedId={selectedVariantId}
             onSelectVariant={setSelectedVariantId}
           />
         </section>
 
-        <section className={styles.trustCard}>
-          <h2>{tenantConfig.marketing.productDetail.trustHeading}</h2>
-          <div className={styles.trustList}>
-            {tenantConfig.marketing.productDetail.trustItems.map((text) => (
-              <div key={text} className={styles.trustItem}>
-                <span className={styles.trustItemDot} aria-hidden="true" />
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   )

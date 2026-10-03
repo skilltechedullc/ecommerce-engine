@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import { tenantConfig } from '@/lib/tenant.config'
 import MiniCartDrawer from '@/components/MiniCartDrawer'
 
 export default function RouteChrome({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,7 @@ export default function RouteChrome({ children }: { children: React.ReactNode })
     <>
       <Header />
       <MiniCartDrawer />
-      {!hideWhatsAppFloat && <WhatsAppButton />}
+      {!hideWhatsAppFloat && !tenantConfig.features.aiChat && <WhatsAppButton />}
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
     </>

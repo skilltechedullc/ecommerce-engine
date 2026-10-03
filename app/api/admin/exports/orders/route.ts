@@ -1,3 +1,4 @@
+import { filterAdminOrders } from '@/lib/adminOrders'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminRole } from '@/lib/adminAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
@@ -21,7 +22,8 @@ export async function GET(req: NextRequest) {
       throw new HttpError(500, error.message, 'DB_FETCH_FAILED')
     }
 
-    const rows = (data ?? []).flatMap((order) => {
+    const filters = Object.fromEntries(req.nextUrl.searchParams)
+    const rows = filterAdminOrders(data ?? [], filters).flatMap((order) => {
       const items = order.order_items ?? []
       if (items.length === 0) {
         return [[order.id, order.created_at, order.customer_name, order.customer_email, order.customer_phone, order.total_amount, order.status, order.source, order.payment_method, order.razorpay_order_id, order.razorpay_payment_id, '', '', '']]

@@ -560,3 +560,9 @@
 .otpBox { margin: 14px 0; padding: 16px; border: 1px solid #cddcd1; border-radius: 12px; background: #f5faf6; font-size: 14px; }
 .otpBox p { line-height: 1.5; margin: 10px 0; }
 .summaryTotal > span:last-child { white-space: nowrap; }
+
+.formCard h1 { font-family: Georgia, serif; font-size: 26px; line-height: 1.25; color: #173f30; margin: 0 0 12px; }
+@media(max-width:768px) { .page { padding-bottom: calc(100px + env(safe-area-inset-bottom)); } }
+
+.addressGrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.addressGrid .field:last-child { grid-column:1/-1; }

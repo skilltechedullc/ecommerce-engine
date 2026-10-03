@@ -71,6 +71,15 @@ function ImageGalleryField({
   const [manualUrl, setManualUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [library, setLibrary] = useState<Array<{path:string;public_url:string}> | null>(null)
+  const [loadingLibrary, setLoadingLibrary] = useState(false)
+  async function toggleLibrary() {
+    if (library !== null) { setLibrary(null); return }
+    setLoadingLibrary(true); setUploadError('')
+    try { const res=await fetch('/api/admin/media'); const data=await res.json(); if(!res.ok) throw new Error(data.error || 'Could not load media'); setLibrary(data.assets ?? []) }
+    catch(err) { setUploadError(err instanceof Error ? err.message : 'Could not load media') }
+    finally { setLoadingLibrary(false) }
+  }
 
   function pushUrl(url: string) {
     const normalized = url.trim()
@@ -108,10 +117,11 @@ function ImageGalleryField({
   }
 
   return (
-    <label style={{ display: 'grid', gap: '6px', gridColumn: '1 / -1' }}>
+    <div role="group" aria-label={label} style={{ display: 'grid', gap: '6px', gridColumn: '1 / -1' }}>
       <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>{label}</span>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
         <input
+          aria-label={`${label} image URL`}
           value={manualUrl}
           onChange={(e) => setManualUrl(e.target.value)}
           style={{ ...inputStyle, flex: 1 }}
@@ -143,6 +153,8 @@ function ImageGalleryField({
           style={{ display: 'none' }}
         />
       </div>
+      <button type="button" onClick={toggleLibrary} disabled={loadingLibrary} style={{...uploadButton,justifySelf:'start'}} aria-expanded={library!==null}>{loadingLibrary ? 'Loading photos…' : library!==null ? 'Close image library' : 'Choose from image library'}</button>
+      {library!==null && <div className="admin-mediaPicker">{library.length===0 ? <p>No uploaded photos yet. Use Upload to add your first photo.</p> : library.map(asset=><button type="button" key={asset.path} aria-label={`Use image ${asset.path}`} onClick={()=>{pushUrl(asset.public_url);setLibrary(null)}}><Image src={asset.public_url} alt={asset.path} width={100} height={100} unoptimized style={{width:'100%',height:100,objectFit:'contain'}} /></button>)}</div>}
       {uploadError && (
         <span style={{ fontSize: '12px', color: '#B91C1C' }}>{uploadError}</span>
       )}
@@ -165,7 +177,7 @@ function ImageGalleryField({
           ))}
         </div>
       )}
-    </label>
+    </div>
   )
 }
 
@@ -321,26 +333,14 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="admin-formSections" style={{ maxWidth: '1120px' }}>
-      {mode === 'create' ? (
-        <section className="admin-surface admin-formSection">
-          <div className="admin-formSection__header">
-            <div>
-              <p className="admin-formSection__eyebrow">First Product Checklist</p>
-              <h2 className="admin-formSection__title">Ready-to-sell basics</h2>
-              <p className="admin-formSection__description">
-                A product is ready when it has a clear name, product image, at least one variant, selling price, and available stock.
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
+      {mode === 'create' && <p className="admin-sectionText">Add a name, photo, size, price and stock to get started.</p>}
 
       <section className="admin-surface admin-formSection">
         <div className="admin-formSection__header">
           <div>
             <p className="admin-formSection__eyebrow">Basic Info</p>
-            <h2 className="admin-formSection__title">Core product details</h2>
-            <p className="admin-formSection__description">Set the identity, taxonomy, and primary merchandising copy for this product.</p>
+            <h2 className="admin-formSection__title">Product details</h2>
+            <p className="admin-formSection__description">Add the product name, category, photos and description.</p>
           </div>
 
           <label className="admin-formCheckbox">
@@ -353,7 +353,7 @@ export default function ProductForm({
           </label>
         </div>
 
-        <div className="admin-formGrid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <div className="admin-formGrid admin-productFields">
           <Field label="Name">
             <input value={form.name} onChange={(e) => setField('name', e.target.value)} style={inputStyle} required />
           </Field>
@@ -430,7 +430,7 @@ export default function ProductForm({
         <div className="admin-formSection__header">
           <div>
             <p className="admin-formSection__eyebrow">Variants</p>
-            <h2 className="admin-formSection__title">Sellable configurations</h2>
+            <h2 className="admin-formSection__title">Sizes and stock</h2>
             <p className="admin-formSection__description">Each variant carries its own pricing, stock, SKU, and optional image for merchandising clarity.</p>
           </div>
 
@@ -462,7 +462,7 @@ export default function ProductForm({
                 </button>
               </div>
 
-              <div className="admin-formGrid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              <div className="admin-formGrid admin-productFields">
                 <Field label="Variant Name">
                   <input
                     value={variant.name}
@@ -491,7 +491,7 @@ export default function ProductForm({
                     required
                   />
                 </Field>
-                <Field label="Real Price">
+                <Field label="Compare-at price / MRP">
                   <input
                     type="number"
                     min="0"
@@ -499,7 +499,7 @@ export default function ProductForm({
                     value={variant.compareAtPrice}
                     onChange={(e) => setVariantField(index, 'compareAtPrice', e.target.value)}
                     style={inputStyle}
-                    placeholder="Optional struck-through price"
+                    placeholder="Optional original price, above selling price"
                   />
                 </Field>
                 <Field label="Stock">
@@ -527,7 +527,7 @@ export default function ProductForm({
 
       {error && <p style={{ color: '#B91C1C', margin: 0, fontSize: '14px' }}>{error}</p>}
 
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div className="admin-saveBar">
         <button type="submit" disabled={saving} className="admin-button admin-button--primary">
           {saving ? 'Saving...' : mode === 'create' ? 'Create Product' : 'Update Product'}
         </button>

@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 const QUALIFIED_STATUSES = ['Paid', 'Processing', 'Shipped', 'Delivered']
 
 export async function getBestSellerProductIds(limit = 8): Promise<string[]> {
+  // Demo/test payment activity must not become a public sales claim.
+  if (!process.env.RAZORPAY_KEY_ID?.startsWith('rzp_live_')) return []
   const supabase = getSupabaseAdmin()
   const since = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
 

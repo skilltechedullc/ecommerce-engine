@@ -141,7 +141,7 @@ export default function ProductCard({
 
           <div className={styles.footer}>
             <div>
-              <p className={styles.priceLabel}>Starting at</p>
+              <p className={styles.priceLabel}>{displayVariant?.name ?? 'Starting at'}</p>
               <div className={styles.priceWrap}>
                 <span className={styles.price}>{moneyWithSymbol(displayPrice)}</span>
                 {compareAtPrice ? <span className={styles.comparePrice}>{moneyWithSymbol(compareAtPrice)}</span> : null}

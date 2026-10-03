@@ -73,54 +73,7 @@ export default function CartPage() {
   return (
     <div className={styles.page}>
       <div className={styles.wrap}>
-        <section className={styles.hero}>
-          <div className={styles.heroCard}>
-            <span className={styles.kicker}>Cart Review</span>
-            <h1>Review your selection before we pack and dispatch it fresh.</h1>
-            <p>
-              Each order is prepared with the same careful sourcing standards that define {storeConfig.brandName}. Check your variants, quantities, and totals before moving to secure checkout.
-            </p>
-            <div className={styles.heroStats}>
-              <div className={styles.heroStat}>
-                <strong>{itemCount}</strong>
-                <span>Items in cart</span>
-              </div>
-              <div className={styles.heroStat}>
-                <strong>{tenantConfig.marketing.cart.shippingLabel}</strong>
-                <span>{tenantConfig.region.shippingCoverageLabel}</span>
-              </div>
-              <div className={styles.heroStat}>
-                <strong>{moneyWithSymbol(shippingQuote.total)}</strong>
-                <span>Current cart value</span>
-              </div>
-            </div>
-          </div>
-
-          <aside className={styles.miniBrand}>
-            <div className={styles.logoRow}>
-              <Image
-                src={storeConfig.logoUrl}
-                alt={storeConfig.brandName}
-                width={82}
-                height={82}
-                unoptimized
-                style={{ width: '82px', height: 'auto' }}
-              />
-              <div className={styles.logoMeta}>
-                <span>{storeConfig.brandName}</span>
-                <strong>{tenantConfig.marketing.cart.miniBrandTitle}</strong>
-              </div>
-            </div>
-            <p>
-              {tenantConfig.marketing.cart.miniBrandBody}
-            </p>
-            <div className={styles.pills}>
-              {tenantConfig.marketing.cart.miniBrandPills.map((pill) => (
-                <span key={pill} className={styles.pill}>{pill}</span>
-              ))}
-            </div>
-          </aside>
-        </section>
+        <header className={styles.cartHeading}><h1>Your cart</h1><p>{itemCount} item{itemCount === 1 ? '' : 's'} · Review your sizes and quantities.</p></header>
 
         {cart.length === 0 ? (
           <section className={styles.emptyCard}>
@@ -223,11 +176,6 @@ export default function CartPage() {
                 Continue to Secure Checkout
               </Link>
 
-              <div className={styles.trustStrip} aria-label="Checkout trust indicators">
-                <span>Secure payment</span>
-                <span>Certified products</span>
-                <span>Fast delivery</span>
-              </div>
 
               <Link href="/products" className={styles.secondaryButton}>
                 Continue Shopping
@@ -282,7 +230,7 @@ export default function CartPage() {
               <strong>{moneyWithSymbol(shippingQuote.total)}</strong>
             </div>
             <Link href="/checkout" className={styles.mobileStickyButton}>
-              Continue to Secure Checkout
+              Checkout
             </Link>
           </div>
         ) : null}

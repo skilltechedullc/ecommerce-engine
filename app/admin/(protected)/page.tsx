@@ -1,3 +1,4 @@
+import { storeDateKey, STORE_TIME_ZONE, STORE_TIME_LABEL } from '@/lib/adminOrders'
 import { requireAdminPermission } from '@/lib/adminAuth'
 import Link from 'next/link'
 import { moneyWithSymbol } from '@/lib/money'
@@ -39,11 +40,11 @@ type LowStockVariantRow = {
 }
 
 function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10)
+  return storeDateKey(date)
 }
 
 function shortDayLabel(date: Date) {
-  return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short' })
+  return date.toLocaleDateString(tenantConfig.region.numberLocale, { weekday: 'short', timeZone: STORE_TIME_ZONE })
 }
 
 function orderSource(row: ChannelOrderRow): 'whatsapp' | 'web' {
@@ -74,18 +75,12 @@ export default async function AdminDashboard() {
   const totalRevenue = safeOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
 
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-
-  const thisMonthOrders = safeOrders.filter((order) => {
-    const createdAt = order.created_at ? new Date(order.created_at) : null
-    return createdAt && createdAt >= monthStart
-  })
-
-  const lastMonthOrders = safeOrders.filter((order) => {
-    const createdAt = order.created_at ? new Date(order.created_at) : null
-    return createdAt && createdAt >= lastMonthStart && createdAt < monthStart
-  })
+  const monthKey = storeDateKey(now).slice(0,7)
+  const previousMonth = new Date(monthKey+'-01T12:00:00Z')
+  previousMonth.setUTCMonth(previousMonth.getUTCMonth()-1)
+  const lastMonthKey = storeDateKey(previousMonth).slice(0,7)
+  const thisMonthOrders = safeOrders.filter(order => order.created_at && storeDateKey(order.created_at).startsWith(monthKey))
+  const lastMonthOrders = safeOrders.filter(order => order.created_at && storeDateKey(order.created_at).startsWith(lastMonthKey))
 
   const thisMonthRevenue = thisMonthOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
   const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0)
@@ -157,8 +152,8 @@ export default async function AdminDashboard() {
 
   const lowStockPreview = lowStockVariants.slice(0, 5)
 
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const todaysOrders = safeOrders.filter((order) => order.created_at?.startsWith(todayStr)).length
+  const todayStr = storeDateKey(new Date())
+  const todaysOrders = safeOrders.filter((order) => order.created_at && storeDateKey(order.created_at) === todayStr).length
   const recentOrders = safeOrders.slice(0, 5)
 
   const currentDate = new Date()
@@ -169,7 +164,7 @@ export default async function AdminDashboard() {
   })
 
   const bars = dayKeys.map((day) => {
-    const matches = safeOrders.filter((order) => order.created_at?.startsWith(day.key))
+    const matches = safeOrders.filter((order) => order.created_at && storeDateKey(order.created_at) === day.key)
     return {
       ...day,
       orders: matches.length,
@@ -200,10 +195,18 @@ export default async function AdminDashboard() {
 
   return (
     <div className="admin-stack">
+      <section className="admin-surface admin-actionQueue">
+        <h2 className="admin-sectionTitle">Needs attention</h2>
+        <div className="admin-quickActions">
+          <Link href="/admin/orders?status=awaiting_dispatch"><strong>{safeOrders.filter(order=>['Paid','Processing'].includes(order.status??'')).length}</strong> Awaiting dispatch</Link>
+          <Link href="/admin/orders?status=Pending"><strong>{safeOrders.filter(order=>order.status==='Pending').length}</strong> Pending payment / review</Link>
+          <Link href="/admin/products"><strong>{lowStockVariants.length}</strong> Low-stock sizes</Link>
+        </div>
+      </section>
       <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
         <StatCard href="/admin/orders" label="Total Orders" value={String(totalOrders)} hint="All-time completed and active orders." />
         <StatCard href="/admin/orders" label="Order value" value={moneyWithSymbol(totalRevenue)} hint={`This month: ${moneyWithSymbol(thisMonthRevenue)}`} />
-        <StatCard href="/admin/orders?scope=today" label="Today (UTC)" value={String(todaysOrders)} hint="Click through to review today’s orders." />
+        <StatCard href="/admin/orders?scope=today" label={`Today (${STORE_TIME_LABEL})`} value={String(todaysOrders)} hint="Click through to review today’s orders." />
         <section className="admin-surface admin-metricCard admin-interactiveCard">
           <p className="admin-metricCard__label">This Month</p>
           <p className="admin-metricCard__value">{moneyWithSymbol(thisMonthRevenue)}</p>
@@ -414,12 +417,12 @@ export default async function AdminDashboard() {
                         <p className="admin-tableProduct__name">#{order.id.slice(0, 8).toUpperCase()}</p>
                         <p className="admin-tableProduct__meta">
                           {order.created_at
-                            ? new Date(order.created_at).toLocaleString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            ? new Date(order.created_at).toLocaleString(tenantConfig.region.numberLocale, { timeZone: STORE_TIME_ZONE, day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
                             : 'Unknown time'}
                         </p>
                       </div>
                     </td>
-                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td>{order.created_at ? new Date(order.created_at).toLocaleDateString(tenantConfig.region.numberLocale, { timeZone: STORE_TIME_ZONE, day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td style={{ color: 'var(--admin-text)', fontWeight: 700 }}>{moneyWithSymbol(order.total_amount ?? 0)}</td>
                     <td>
                       <Link href={`/admin/orders/${order.id}`} className="admin-button admin-button--secondary admin-button--small">

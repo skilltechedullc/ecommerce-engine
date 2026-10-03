@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -46,6 +45,9 @@ type FieldErrors = {
   email?: string
   phone?: string
   address?: string
+  city?: string
+  state?: string
+  pincode?: string
 }
 
 function validateField(field: keyof FieldErrors, value: string): string {
@@ -53,7 +55,10 @@ function validateField(field: keyof FieldErrors, value: string): string {
     case 'name': return value.trim() ? '' : 'Full name is required'
     case 'email': return /^\S+@\S+\.\S+$/.test(value.trim()) ? '' : 'Enter a valid email address'
     case 'phone': return isValidTenantPhone(value) ? '' : tenantConfig.region.phone.validationMessage
-    case 'address': return value.trim() ? '' : 'Delivery address is required'
+    case 'address': return value.trim() ? '' : 'Street address is required'
+    case 'city': return value.trim() ? '' : 'City is required'
+    case 'state': return value.trim() ? '' : 'State is required'
+    case 'pincode': return /^[1-9][0-9]{5}$/.test(value.trim()) ? '' : 'Enter a valid 6-digit PIN code'
   }
 }
 
@@ -68,6 +73,9 @@ export default function CheckoutPage() {
     email: '',
     phone: '',
     address: '',
+    city: '',
+    state: '',
+    pincode: '',
   })
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -93,7 +101,8 @@ export default function CheckoutPage() {
     const timer=setTimeout(()=>setResendCountdown(value=>Math.max(0,value-1)),1000)
     return ()=>clearTimeout(timer)
   },[resendCountdown])
-  const couponPayload = () => ({ items: cart.map(i=>({variant_id:i.variant_id,quantity:i.quantity})),couponCode,address:form.address,customer:form })
+  const deliveryAddress = [form.address.trim(), form.city.trim(), form.state.trim(), form.pincode.trim()].filter(Boolean).join(', ')
+  const couponPayload = () => ({ items: cart.map(i=>({variant_id:i.variant_id,quantity:i.quantity})),couponCode,address:deliveryAddress,customer:{...form,address:deliveryAddress} })
   async function requestCouponQuote(challengeId?:string) {
     const response=await fetch('/api/checkout/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...couponPayload(),challengeId})})
     const data=await response.json()
@@ -120,9 +129,9 @@ export default function CheckoutPage() {
     }catch(e){setCouponError(e instanceof Error?e.message:'Verification failed')}
     finally{couponBusy.current=false;setCheckingCoupon(false)}
   }
-  const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), form.address, form.phone, form.email])
+  const fingerprint = JSON.stringify([cart.map(i => [i.variant_id, i.quantity, i.price]), deliveryAddress, form.phone, form.email])
   const activeCoupon = couponQuote?.fingerprint === fingerprint ? couponQuote : null
-  const shippingQuote = activeCoupon ?? calculateShippingRate(total, undefined, { address: form.address })
+  const shippingQuote = activeCoupon ?? calculateShippingRate(total, undefined, { address: deliveryAddress })
   async function applyCoupon() {
     if (couponBusy.current || checkoutBusy.current) return
     couponBusy.current = true; setCheckingCoupon(true); setCouponError(''); setCouponQuote(null)
@@ -149,7 +158,7 @@ export default function CheckoutPage() {
     setFieldErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }))
   }
 
-  const submitManualOrder = async (customer: typeof form) => {
+  const submitManualOrder = async (customer: Pick<typeof form, 'name' | 'email' | 'phone' | 'address'>) => {
     setStatus('saving')
     const response = await fetch('/api/create-manual-order', {
       method: 'POST',
@@ -235,7 +244,7 @@ export default function CheckoutPage() {
       }
     }
 
-    const fields = ['name', 'email', 'phone', 'address'] as const
+    const fields = ['name', 'email', 'phone', 'address', 'city', 'state', 'pincode'] as const
     const newErrors: FieldErrors = {}
     const newTouched: Partial<Record<keyof FieldErrors, boolean>> = {}
     for (const field of fields) {
@@ -247,7 +256,8 @@ export default function CheckoutPage() {
     if (Object.values(newErrors).some(Boolean)) return
     setErrorMsg('')
 
-    const { name, email, phone, address } = form
+    const { name, email, phone } = form
+    const address = deliveryAddress
 
     try {
       if (paymentMethod === 'cod') {
@@ -357,7 +367,7 @@ export default function CheckoutPage() {
           <div className={styles.formCard}>
             <div className={styles.formIntro}>
               <Link href="/cart" className={styles.backLink}>← Back to Cart</Link>
-              <h2>Where should we send your order?</h2>
+              <h1>Where should we send your order?</h1>
               <p className={styles.formLead}>
                 We use these details only for fulfilment, delivery updates, and payment confirmation.
               </p>
@@ -415,14 +425,23 @@ export default function CheckoutPage() {
               <textarea
                 id="address"
                 className={`${styles.textarea}${fieldErrors.address ? ' ' + styles.inputHasError : ''}`}
-                placeholder="Flat / House No., Street, City, State, PIN"
+                placeholder="House / flat number, street, area"
                 value={form.address}
                 onChange={handleChange('address')}
                 onBlur={handleBlur('address')}
-                rows={4}
+                rows={3}
                 autoComplete="street-address"
               />
               {fieldErrors.address && <span className={styles.fieldError}>{fieldErrors.address}</span>}
+            </div>
+            <div className={styles.addressGrid}>
+              {(['city','state','pincode'] as const).map(field => (
+                <div className={styles.field} key={field}>
+                  <label className={styles.fieldLabel} htmlFor={field}>{field === 'pincode' ? 'PIN code' : field === 'city' ? 'City' : 'State'}</label>
+                  <input id={field} className={styles.input} value={form[field]} onChange={handleChange(field)} onBlur={handleBlur(field)} autoComplete={field === 'pincode' ? 'postal-code' : field === 'city' ? 'address-level2' : 'address-level1'} inputMode={field === 'pincode' ? 'numeric' : 'text'} maxLength={field === 'pincode' ? 6 : 100} aria-invalid={Boolean(fieldErrors[field])} aria-describedby={fieldErrors[field] ? field+'-error' : undefined} />
+                  {fieldErrors[field] && <span id={field+'-error'} className={styles.fieldError}>{fieldErrors[field]}</span>}
+                </div>
+              ))}
             </div>
           </div>
           ) : null}
@@ -546,42 +565,6 @@ export default function CheckoutPage() {
               )}
             </aside>
           )}
-        </section>
-
-        <section className={styles.hero}>
-          <div className={styles.heroCard}>
-            <span className={styles.kicker}>Secure Checkout</span>
-            <h1>{tenantConfig.marketing.checkout.heroTitle}</h1>
-            <p>
-              {tenantConfig.marketing.checkout.heroDescription}
-            </p>
-            <div className={styles.checkpoints}>
-              {tenantConfig.marketing.checkout.heroCheckpoints.map((checkpoint) => (
-                <span key={checkpoint} className={styles.checkpoint}>{checkpoint}</span>
-              ))}
-            </div>
-          </div>
-
-          <aside className={styles.brandCard}>
-            <div className={styles.logoRow}>
-              <Image
-                src={storeConfig.logoUrl}
-                alt={storeConfig.brandName}
-                width={82}
-                height={82}
-                unoptimized
-                style={{ width: '82px', height: 'auto' }}
-              />
-              <div className={styles.logoMeta}>
-                <span>{storeConfig.brandName}</span>
-                <strong>{tenantConfig.marketing.header.mobileSubtitle}</strong>
-              </div>
-            </div>
-            <h2>{tenantConfig.marketing.checkout.brandCardTitle}</h2>
-            <p>
-              {tenantConfig.marketing.checkout.brandCardBody}
-            </p>
-          </aside>
         </section>
 
         {cart.length > 0 && (

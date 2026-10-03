@@ -1,3 +1,4 @@
+import { STORE_TIME_ZONE } from '@/lib/adminOrders'
 import Link from 'next/link'
 import { requireAdminPermission } from '@/lib/adminAuth'
 import { fetchInternalApi } from '@/lib/server/internalApi'
@@ -46,7 +47,7 @@ export default async function AdminInventoryPage() {
               {!events?.length ? <tr><td colSpan={7}>No stock changes yet. Stock updates will appear here after a product is added or edited.</td></tr> : null}
               {(events ?? []).map((event) => (
                 <tr key={event.id}>
-                  <td>{new Date(event.created_at).toLocaleString()}</td>
+                  <td>{new Date(event.created_at).toLocaleString('en-IN', { timeZone: STORE_TIME_ZONE })}</td>
                   <td>{event.product_id ? <Link href={'/admin/products/' + event.product_id}>{event.products?.name ?? 'Open product'}</Link> : 'Deleted product'}</td>
                   <td>{event.product_variants?.weight ?? event.product_variants?.sku ?? 'Variant'}</td>
                   <td>{event.quantity_before ?? '-'}</td>
